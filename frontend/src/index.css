@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-cyber-bg text-gray-100 font-sans antialiased overflow-x-hidden;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.08) 0, transparent 50%),
+      radial-gradient(at 50% 0%, rgba(0, 240, 255, 0.05) 0, transparent 40%),
+      radial-gradient(at 100% 100%, rgba(15, 22, 36, 0.8) 0, transparent 70%);
+  }
+
+  /* Custom Scrollbar for Cyber Aesthetics */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-cyber-bg;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-cyber-border rounded-full hover:bg-cyber-accent/60 transition-colors;
+  }
+}
+
+/* Glassmorphism Cards */
+.cyber-card {
+  @apply bg-cyber-card border border-cyber-border/70 rounded-xl p-5 shadow-lg backdrop-blur-md relative overflow-hidden transition-all duration-300;
+}
+.cyber-card:hover {
+  @apply border-cyber-accent/30 shadow-glow-cyan;
+}
+
+/* Glow Borders */
+.border-glow-cyan {
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+}
+
+.border-glow-red {
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+}
+
+/* Scanning Scanline animation for SOC feeling */
+.scanline {
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0),
+    rgba(255,255,255,0) 50%,
+    rgba(0, 240, 255, 0.03) 50%,
+    rgba(0, 240, 255, 0.03)
+  );
+  background-size: 100% 4px;
+}
+
+/* Animations */
+@keyframes pulse-cyan {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+.animate-pulse-cyan {
+  animation: pulse-cyan 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes grid-move {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(40px); }
+}
+
+.cyber-grid {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(27, 42, 71, 0.15) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(27, 42, 71, 0.15) 1px, transparent 1px);
+  animation: grid-move 20s linear infinite;
+}
+
+/* Shimmer Loading Effect */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(22, 32, 53, 0.1) 25%,
+    rgba(0, 240, 255, 0.05) 37%,
+    rgba(22, 32, 53, 0.1) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer-anim 1.4s ease infinite;
+}
+
+@keyframes shimmer-anim {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}

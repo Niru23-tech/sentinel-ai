@@ -1,0 +1,29 @@
+# SentinelAI Backend Dependencies
+# Install with: pip install -r requirements.txt
+
+# ─── Core Web Framework ──────────────────────────────────────
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+
+# ─── Database ────────────────────────────────────────────────
+sqlalchemy==2.0.36
+
+# ─── Data Validation ─────────────────────────────────────────
+pydantic==2.10.2
+pydantic-settings==2.6.1
+
+# ─── Environment Variables ───────────────────────────────────
+python-dotenv==1.0.1
+
+# ─── Authentication ──────────────────────────────────────────
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.12
+
+# ─── AI Integration (Optional) ───────────────────────────────
+# If GEMINI_API_KEY is not set, the app falls back to mock AI.
+google-generativeai==0.8.3
+
+# ─── Utilities ───────────────────────────────────────────────
+aiofiles==24.1.0
+httpx==0.28.1

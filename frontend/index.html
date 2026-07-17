@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SentinelAI – Autonomous AI Cyber Defense Platform</title>
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Roboto+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      /* Apply fonts globally */
+      body {
+        font-family: 'Outfit', sans-serif;
+      }
+      .font-mono {
+        font-family: 'Roboto Mono', monospace;
+      }
+      /* Custom print overrides for PDF reports */
+      @media print {
+        .noprint {
+          display: none !important;
+        }
+        body {
+          background-color: white !important;
+          color: black !important;
+          font-family: 'Outfit', sans-serif !important;
+        }
+        header, aside, .cyber-card button, .cyber-card select {
+          display: none !important;
+        }
+        main {
+          padding: 0 !important;
+          margin: 0 !important;
+          max-width: 100% !important;
+          width: 100% !important;
+        }
+        .cyber-card {
+          border: none !important;
+          box-shadow: none !important;
+          padding: 0 !important;
+          background: transparent !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
