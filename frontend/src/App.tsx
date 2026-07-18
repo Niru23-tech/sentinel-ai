@@ -12,42 +12,52 @@ import IncidentReport from './pages/IncidentReport';
 import Settings from './pages/Settings';
 
 import { useSentinel } from './context/SentinelContext';
-import { ShieldAlert, Fingerprint } from 'lucide-react';
+import { ShieldAlert, Fingerprint, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const App: React.FC = () => {
-  const { activeCustomer } = useSentinel();
+  const { activeCustomer, incidents, updateIncidentStatus, fetchData } = useSentinel();
   const [sessionLocked, setSessionLocked] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
+  const [unlocked, setUnlocked]   = useState(false);
 
-  // Monitor customer risk score. If it goes >= 80, trigger terminal lock simulation
+  // Monitor customer risk score. If it goes >= 80 and account frozen, lock terminal
   useEffect(() => {
-    if (activeCustomer && activeCustomer.risk_score >= 80 && activeCustomer.account_status === "Temporarily Frozen") {
+    if (activeCustomer && activeCustomer.risk_score >= 80 && activeCustomer.account_status === 'Temporarily Frozen') {
       setSessionLocked(true);
     } else {
       setSessionLocked(false);
+      setUnlocked(false);
     }
   }, [activeCustomer?.risk_score, activeCustomer?.account_status]);
 
-  const handleBiometricUnlock = () => {
+  const handleBiometricUnlock = async () => {
     setUnlocking(true);
-    setTimeout(() => {
-      // Unfreeze account on unlock in backend
-      if (activeCustomer) {
-        fetch(`/api/incidents/1/status`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: "Resolved" })
-        }).then(() => {
-          setUnlocking(false);
-          setSessionLocked(false);
-          window.location.reload(); // Refresh to restore baseline
-        });
-      } else {
-        setUnlocking(false);
-        setSessionLocked(false);
+
+    // Find the active incident for this customer (any non-resolved one)
+    const activeIncident = incidents.find(
+      inc => inc.customer_id === activeCustomer?.id && inc.status !== 'Resolved'
+    );
+
+    await new Promise(resolve => setTimeout(resolve, 1800)); // biometric scan animation
+
+    try {
+      if (activeIncident) {
+        await updateIncidentStatus(activeIncident.id, 'Resolved');
       }
-    }, 2000);
+      // Refresh state so the customer's account_status and risk_score update
+      await fetchData();
+    } catch (err) {
+      console.error('Error resolving incident:', err);
+    } finally {
+      setUnlocking(false);
+      setUnlocked(true);
+      // Brief "Verified" flash before closing the overlay
+      setTimeout(() => {
+        setSessionLocked(false);
+        setUnlocked(false);
+      }, 1200);
+    }
   };
 
   return (
@@ -117,20 +127,28 @@ const App: React.FC = () => {
                   Identity Verification Required
                 </p>
 
+                {/* Biometric Unlock Button */}
                 <button
                   onClick={handleBiometricUnlock}
-                  disabled={unlocking}
+                  disabled={unlocking || unlocked}
                   className={`relative h-28 w-28 rounded-full border flex flex-col items-center justify-center gap-1.5 transition-all duration-300 ${
-                    unlocking 
+                    unlocked
+                      ? 'border-cyber-green bg-cyber-green/10 text-cyber-green'
+                      : unlocking 
                       ? 'border-cyber-accent bg-cyber-accent/5 animate-pulse text-cyber-accent' 
                       : 'border-cyber-border hover:border-cyber-accent hover:bg-cyber-accent/5 text-gray-400 hover:text-cyber-accent'
                   }`}
                 >
-                  {unlocking ? (
+                  {unlocked ? (
+                    <>
+                      <CheckCircle className="h-10 w-10 text-cyber-green" />
+                      <span className="text-[9px] font-mono uppercase tracking-wider text-cyber-green">Verified</span>
+                    </>
+                  ) : unlocking ? (
                     <>
                       <div className="absolute inset-0 rounded-full border-2 border-t-cyber-accent border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
                       <Fingerprint className="h-8 w-8 text-cyber-accent" />
-                      <span className="text-[9px] font-mono uppercase tracking-wider">Verifying...</span>
+                      <span className="text-[9px] font-mono uppercase tracking-wider">Scanning...</span>
                     </>
                   ) : (
                     <>

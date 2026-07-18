@@ -1,33 +1,53 @@
 import React, { useState, useEffect } from 'react';
 import { useSentinel } from '../context/SentinelContext';
 import { 
-  Settings as SettingsIcon, 
   Sliders, 
   Terminal, 
   RefreshCw, 
   ShieldAlert, 
-  Cpu, 
   Info,
   Bug,
   Globe,
   Mail,
   UserCheck,
-  ShieldCheck
+  ShieldCheck,
+  CheckCircle,
+  XCircle,
+  X
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface Toast {
+  id: number;
+  type: 'success' | 'error' | 'warning';
+  title: string;
+  message: string;
+}
 
 const Settings: React.FC = () => {
   const { settings, updateSettings, triggerAttack, resetSimulation, activeCustomer } = useSentinel();
   
   // Local settings states
-  const [threshold, setThreshold] = useState(80);
-  const [enableAi, setEnableAi] = useState(true);
+  const [threshold, setThreshold]           = useState(80);
+  const [enableAi, setEnableAi]             = useState(true);
   const [enableAutoProtect, setEnableAutoProtect] = useState(true);
   const [enableLearningMode, setEnableLearningMode] = useState(true);
 
-  // Loading states for attack simulations
+  // Loading states
   const [injectingAttack, setInjectingAttack] = useState<string | null>(null);
-  const [resetting, setResetting] = useState(false);
+  const [resetting, setResetting]             = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  // Toast notifications
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const addToast = (type: Toast['type'], title: string, message: string) => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, type, title, message }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
+  };
+
+  const removeToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
 
   // Sync local state with context settings on load
   useEffect(() => {
@@ -50,8 +70,9 @@ const Settings: React.FC = () => {
     };
     try {
       await updateSettings(newSettings);
+      addToast('success', 'Settings Saved', 'AI Risk Engine configuration updated successfully.');
     } catch (err) {
-      console.error("Error updating settings:", err);
+      addToast('error', 'Update Failed', 'Could not save settings. Please try again.');
     }
   };
 
@@ -59,40 +80,109 @@ const Settings: React.FC = () => {
     setInjectingAttack(attackType);
     try {
       await triggerAttack(attackType);
-      alert(`ATTACK INJECTED SUCCESSFUL: Simulated ${attackType} logs entered. Monitored customer has been updated in database.`);
+      addToast('success', `Attack Injected: ${attackType}`, `Simulated ${attackType} telemetry logged. Monitor the Dashboard for risk score escalation.`);
     } catch (err) {
-      console.error("Error injecting attack:", err);
+      addToast('error', 'Injection Failed', 'Could not trigger attack simulation.');
     } finally {
       setInjectingAttack(null);
     }
   };
 
   const handleReset = async () => {
-    if (!window.confirm("Are you sure you want to restore the simulation database to baseline? This clears all recent logs and incidents.")) return;
+    setShowResetConfirm(false);
     setResetting(true);
     try {
       await resetSimulation();
-      alert("Simulation DB restored. Sarah Jenkins is secured and John Doe is reset.");
+      addToast('success', 'Simulation Reset', 'Database restored to baseline. All customers are now secured.');
     } catch (err) {
-      console.error("Error resetting simulation:", err);
+      addToast('error', 'Reset Failed', 'Could not restore simulation database.');
     } finally {
       setResetting(false);
     }
   };
 
   const attacks = [
-    { name: 'Phishing Attack', icon: Mail, type: 'Phishing Attack', desc: 'Email click triggers VPN routing anomaly.' },
-    { name: 'Credential Theft', icon: UserCheck, type: 'Credential Theft', desc: 'Failed logins followed by password change.' },
-    { name: 'Session Hijack', icon: Globe, type: 'Session Hijack', desc: 'Impossible travel jump routed via Tor exit nodes.' },
-    { name: 'VPN Login Only', icon: Globe, type: 'VPN Login', desc: 'Simple VPN location jump (+25 risk additions).' },
-    { name: 'Malware Trojan', icon: Bug, type: 'Malware Infection', desc: 'Edr reports background Trojan process executing.' },
-    { name: 'Account Takeover', icon: ShieldAlert, type: 'Account Takeover', desc: 'Full cyber sequence + new beneficiary added.' },
-    { name: 'Insider Threat', icon: Terminal, type: 'Insider Threat', desc: 'Rapid transfers executed at abnormal hours.' }
+    { name: 'Phishing Attack',   icon: Mail,       type: 'Phishing Attack',   desc: 'Email click triggers VPN routing anomaly.' },
+    { name: 'Credential Theft',  icon: UserCheck,  type: 'Credential Theft',  desc: 'Failed logins followed by password change.' },
+    { name: 'Session Hijack',    icon: Globe,      type: 'Session Hijack',    desc: 'Impossible travel jump routed via Tor exit nodes.' },
+    { name: 'VPN Login Only',    icon: Globe,      type: 'VPN Login',         desc: 'Simple VPN location jump (+25 risk).' },
+    { name: 'Malware Trojan',    icon: Bug,        type: 'Malware Infection', desc: 'EDR reports background Trojan process executing.' },
+    { name: 'Account Takeover',  icon: ShieldAlert,type: 'Account Takeover',  desc: 'Full cyber sequence + new beneficiary added.' },
+    { name: 'Insider Threat',    icon: Terminal,   type: 'Insider Threat',    desc: 'Rapid transfers executed at abnormal hours.' }
   ];
 
   return (
-    <div className="space-y-6">
-      
+    <div className="space-y-6 relative">
+
+      {/* ── Toast Notifications ──────────────────────────────── */}
+      <div className="fixed top-20 right-6 z-50 space-y-2 pointer-events-none">
+        <AnimatePresence>
+          {toasts.map(toast => (
+            <motion.div
+              key={toast.id}
+              initial={{ opacity: 0, x: 60 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 60 }}
+              className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border shadow-2xl w-80 backdrop-blur-md ${
+                toast.type === 'success' ? 'bg-green-950/80 border-cyber-green/40 text-cyber-green' :
+                toast.type === 'error'   ? 'bg-red-950/80 border-cyber-red/40 text-cyber-red' :
+                'bg-amber-950/80 border-cyber-amber/40 text-cyber-amber'
+              }`}
+            >
+              {toast.type === 'success' ? <CheckCircle className="h-4 w-4 shrink-0 mt-0.5" /> : <XCircle className="h-4 w-4 shrink-0 mt-0.5" />}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold font-mono">{toast.title}</p>
+                <p className="text-[11px] text-gray-300 mt-0.5 leading-snug">{toast.message}</p>
+              </div>
+              <button onClick={() => removeToast(toast.id)} className="text-gray-500 hover:text-gray-300 shrink-0">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* ── Reset Confirmation Modal ──────────────────────────── */}
+      <AnimatePresence>
+        {showResetConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-cyber-bg/80 backdrop-blur-sm z-50 flex items-center justify-center p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9 }}
+              className="bg-cyber-card border border-cyber-border rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <RefreshCw className="h-5 w-5 text-cyber-amber" />
+                <h3 className="text-sm font-bold text-gray-200 font-mono">Reset Simulation?</h3>
+              </div>
+              <p className="text-xs text-gray-400 leading-relaxed mb-6">
+                This will flush all simulation logs, clear all incidents, and restore all 10 customer profiles to their secured baseline state.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowResetConfirm(false)}
+                  className="flex-1 py-2 rounded-lg text-xs font-mono border border-cyber-border text-gray-400 hover:text-gray-200 hover:border-gray-500 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="flex-1 py-2 rounded-lg text-xs font-mono bg-cyber-amber/20 border border-cyber-amber/40 text-cyber-amber hover:bg-cyber-amber/30 transition-colors font-semibold"
+                >
+                  Confirm Reset
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Risk Engine System Configuration */}
@@ -117,8 +207,9 @@ const Settings: React.FC = () => {
               onChange={(e) => {
                 const val = parseInt(e.target.value);
                 setThreshold(val);
-                handleSettingsUpdate({ risk_threshold: val });
               }}
+              onMouseUp={() => handleSettingsUpdate({ risk_threshold: threshold })}
+              onTouchEnd={() => handleSettingsUpdate({ risk_threshold: threshold })}
               className="w-full h-1 bg-cyber-border rounded-lg appearance-none cursor-pointer accent-cyber-accent focus:outline-none"
             />
             <div className="flex justify-between text-[8px] text-gray-500 font-mono">
@@ -178,7 +269,7 @@ const Settings: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <label className="text-xs font-semibold text-gray-200">System Learning Mode</label>
-                <p className="text-[10px] text-gray-500">Continuously calibrate normal user location baselines.</p>
+                <p className="text-[10px] text-gray-500">Continuously calibrate normal user baselines.</p>
               </div>
               <button
                 onClick={() => {
@@ -201,12 +292,12 @@ const Settings: React.FC = () => {
           <div className="p-3 bg-cyber-cardLight/30 border border-cyber-border/80 rounded-xl flex gap-2">
             <Info className="h-4 w-4 text-cyber-accent shrink-0 mt-0.5" />
             <p className="text-[10px] text-gray-400 font-sans leading-relaxed">
-              Adjusting the quarantine threshold controls how fast SentinelAI reacts. If the score matches or exceeds it, outbound payments are auto-blocked.
+              Adjusting the quarantine threshold controls how fast SentinelAI reacts. If the risk score meets or exceeds it, outbound payments are auto-blocked.
             </p>
           </div>
         </div>
 
-        {/* Breach & Cyber Attack Simulation Injector */}
+        {/* Attack Simulation Injector */}
         <div className="cyber-card lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between border-b border-cyber-border/60 pb-3 mb-2">
             <div className="flex items-center gap-2">
@@ -221,26 +312,30 @@ const Settings: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {attacks.map((att) => {
               const Icon = att.icon;
+              const isInjecting = injectingAttack === att.type;
+              const anyInjecting = injectingAttack !== null;
               return (
                 <button
                   key={att.name}
-                  disabled={injectingAttack !== null}
+                  disabled={anyInjecting}
                   onClick={() => handleAttackInjection(att.type)}
                   className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all duration-200 ${
-                    injectingAttack === att.type 
+                    isInjecting 
                       ? 'bg-red-950/20 border-cyber-red animate-pulse'
-                      : 'bg-cyber-cardLight/20 border-cyber-border hover:border-cyber-red/50 hover:bg-red-950/5 group'
+                      : anyInjecting
+                      ? 'bg-cyber-cardLight/10 border-cyber-border/30 opacity-50 cursor-not-allowed'
+                      : 'bg-cyber-cardLight/20 border-cyber-border hover:border-cyber-red/50 hover:bg-red-950/5 group cursor-pointer'
                   }`}
                 >
                   <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 border transition-all ${
-                    injectingAttack === att.type 
+                    isInjecting 
                       ? 'bg-red-950 text-cyber-red border-cyber-red' 
                       : 'bg-cyber-bg border-cyber-border group-hover:border-cyber-red/30 group-hover:text-cyber-red'
                   }`}>
-                    {injectingAttack === att.type ? (
+                    {isInjecting ? (
                       <div className="h-3 w-3 border border-cyber-red border-t-transparent rounded-full animate-spin"></div>
                     ) : (
-                      <Icon className="h-4.5 w-4.5 text-gray-400 group-hover:text-cyber-red transition-colors" />
+                      <Icon className="h-4 w-4 text-gray-400 group-hover:text-cyber-red transition-colors" />
                     )}
                   </div>
                   <div>
@@ -258,7 +353,7 @@ const Settings: React.FC = () => {
               <p className="text-[10px] text-gray-500 font-sans mt-0.5">Flush simulation logs and restore default configurations.</p>
             </div>
             <button
-              onClick={handleReset}
+              onClick={() => setShowResetConfirm(true)}
               disabled={resetting}
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-cyber-border hover:bg-cyber-border/80 text-gray-300 transition-colors border border-cyber-border/50 font-mono"
             >
