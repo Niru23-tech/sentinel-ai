@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Bell, 
   User as UserIcon, 
@@ -7,41 +7,51 @@ import {
   ShieldCheck, 
   Search,
   X,
-  DollarSign 
+  DollarSign,
+  CheckCircle,
+  ArrowRight,
+  ShieldOff
 } from 'lucide-react';
 import { useSentinel } from '../context/SentinelContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Header: React.FC = () => {
-  const location = useLocation();
+  const location  = useLocation();
+  const navigate  = useNavigate();
   const { 
     customers, 
     activeCustomer, 
     selectCustomer, 
     incidents, 
     moneySaved, 
-    activeIncidentsCount 
+    activeIncidentsCount,
+    updateIncidentStatus,
+    fetchData
   } = useSentinel();
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearch, setShowSearch]               = useState(false);
   const [searchQuery, setSearchQuery]             = useState('');
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const searchPanelRef = useRef<HTMLDivElement>(null);
+  const [resolvingId, setResolvingId]             = useState<number | null>(null);
+
+  const searchPanelRef  = useRef<HTMLDivElement>(null);
+  const notifPanelRef   = useRef<HTMLDivElement>(null);
+  const searchInputRef  = useRef<HTMLInputElement>(null);
 
   // Focus input when panel opens
   useEffect(() => {
-    if (showSearch) {
-      setTimeout(() => searchInputRef.current?.focus(), 50);
-    } else {
-      setSearchQuery('');
-    }
+    if (showSearch) setTimeout(() => searchInputRef.current?.focus(), 50);
+    else setSearchQuery('');
   }, [showSearch]);
 
-  // Close panel on outside click
+  // Close panels on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (searchPanelRef.current && !searchPanelRef.current.contains(e.target as Node)) {
         setShowSearch(false);
+      }
+      if (notifPanelRef.current && !notifPanelRef.current.contains(e.target as Node)) {
+        setShowNotifications(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -53,20 +63,37 @@ const Header: React.FC = () => {
     c.account_number.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Map path to title
   const getPageTitle = () => {
     switch (location.pathname) {
-      case '/': return 'SentinelAI Operations Terminal';
-      case '/logs': return 'Live Cyber Security Monitor';
+      case '/':             return 'SentinelAI Operations Terminal';
+      case '/logs':         return 'Live Cyber Security Monitor';
       case '/transactions': return 'Banking Transaction Simulator';
-      case '/analysis': return 'AI Correlation & Behavior Analysis';
-      case '/reports': return 'Incident Report Ledger';
-      case '/settings': return 'Risk Engine Configuration';
-      default: return 'SentinelAI Security Platform';
+      case '/analysis':     return 'AI Correlation & Behavior Analysis';
+      case '/reports':      return 'Incident Report Ledger';
+      case '/settings':     return 'Risk Engine Configuration';
+      default:              return 'SentinelAI Security Platform';
     }
   };
 
   const criticalAlarms = incidents.filter(i => i.status !== 'Resolved');
+
+  /** Click notification row → navigate to AI Analysis pre-selected */
+  const handleNotifClick = (incidentId: number) => {
+    setShowNotifications(false);
+    navigate(`/analysis?incident=${incidentId}`);
+  };
+
+  /** Resolve threat directly from notification panel */
+  const handleResolve = async (e: React.MouseEvent, incidentId: number) => {
+    e.stopPropagation(); // don't trigger row navigation
+    setResolvingId(incidentId);
+    try {
+      await updateIncidentStatus(incidentId, 'Resolved');
+      await fetchData();
+    } finally {
+      setResolvingId(null);
+    }
+  };
 
   return (
     <header className="h-16 border-b border-cyber-border/80 bg-cyber-card/70 backdrop-blur-md flex items-center justify-between px-6 z-10 shrink-0 relative">
@@ -83,16 +110,14 @@ const Header: React.FC = () => {
       {/* Action Indicators */}
       <div className="flex items-center gap-6">
 
-        {/* ── Client Search ─────────────────────────────────────── */}
+        {/* ── Client Search ──────────────────────────────────── */}
         <div className="relative" ref={searchPanelRef}>
-          {/* Trigger row: active client name + search icon button */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyber-cardLight/50 border border-cyber-border/80 text-xs text-gray-300">
             <span className="text-gray-500 font-mono">Target Client:</span>
             <span className="text-cyber-accent font-semibold max-w-[110px] truncate">
               {activeCustomer?.name || 'Select Client'}
             </span>
             <button
-              id="client-search-btn"
               onClick={() => setShowSearch(prev => !prev)}
               className="ml-1 p-1 rounded hover:bg-cyber-blue/20 text-gray-400 hover:text-cyber-accent transition-colors"
               title="Search client"
@@ -101,15 +126,12 @@ const Header: React.FC = () => {
             </button>
           </div>
 
-          {/* Search Panel */}
           {showSearch && (
             <div className="absolute right-0 mt-2 w-64 bg-cyber-card border border-cyber-border rounded-xl shadow-2xl overflow-hidden z-50">
-              {/* Search Input */}
               <div className="flex items-center gap-2 px-3 py-2.5 bg-cyber-cardLight/80 border-b border-cyber-border/80">
                 <Search className="h-3.5 w-3.5 text-cyber-accent shrink-0" />
                 <input
                   ref={searchInputRef}
-                  id="client-search-input"
                   type="text"
                   placeholder="Search client name or account…"
                   value={searchQuery}
@@ -122,8 +144,6 @@ const Header: React.FC = () => {
                   </button>
                 )}
               </div>
-
-              {/* Results */}
               <div className="max-h-64 overflow-y-auto divide-y divide-cyber-border/40">
                 {filteredCustomers.length === 0 ? (
                   <div className="px-4 py-6 text-center text-[11px] text-gray-500 font-mono">
@@ -133,14 +153,9 @@ const Header: React.FC = () => {
                   filteredCustomers.map(c => (
                     <button
                       key={c.id}
-                      onClick={() => {
-                        selectCustomer(c.id);
-                        setShowSearch(false);
-                      }}
+                      onClick={() => { selectCustomer(c.id); setShowSearch(false); }}
                       className={`w-full text-left px-3 py-2.5 hover:bg-cyber-blue/15 hover:text-cyber-accent transition-colors flex items-center justify-between ${
-                        activeCustomer?.id === c.id
-                          ? 'bg-cyber-blue/10 text-cyber-accent font-semibold'
-                          : 'text-gray-300'
+                        activeCustomer?.id === c.id ? 'bg-cyber-blue/10 text-cyber-accent font-semibold' : 'text-gray-300'
                       }`}
                     >
                       <div>
@@ -148,11 +163,9 @@ const Header: React.FC = () => {
                         <p className="text-[9px] font-mono text-gray-500">{c.account_number}</p>
                       </div>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
-                        c.risk_score >= 80
-                          ? 'bg-red-950/50 text-cyber-red border border-red-900/60'
-                          : c.risk_score >= 50
-                          ? 'bg-amber-950/50 text-cyber-amber border border-amber-900/60'
-                          : 'bg-green-950/50 text-cyber-green border border-green-900/60'
+                        c.risk_score >= 80 ? 'bg-red-950/50 text-cyber-red border border-red-900/60' :
+                        c.risk_score >= 50 ? 'bg-amber-950/50 text-cyber-amber border border-amber-900/60' :
+                        'bg-green-950/50 text-cyber-green border border-green-900/60'
                       }`}>
                         {c.risk_score}%
                       </span>
@@ -160,8 +173,6 @@ const Header: React.FC = () => {
                   ))
                 )}
               </div>
-
-              {/* Footer count */}
               <div className="px-3 py-1.5 bg-cyber-cardLight/40 border-t border-cyber-border/60 text-[9px] font-mono text-gray-600">
                 {filteredCustomers.length} of {customers.length} clients
               </div>
@@ -169,7 +180,7 @@ const Header: React.FC = () => {
           )}
         </div>
 
-        {/* Money Protected Indicator */}
+        {/* Money Protected */}
         <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-950/20 border border-green-900/40 text-xs text-cyber-green font-mono">
           <DollarSign className="h-3.5 w-3.5" />
           <span>Money Protected:</span>
@@ -182,10 +193,10 @@ const Header: React.FC = () => {
           <span className="font-mono">SYS-DEFENSE: ACTIVE</span>
         </div>
 
-        {/* Notifications Icon */}
-        <div className="relative">
+        {/* ── Notifications ──────────────────────────────────── */}
+        <div className="relative" ref={notifPanelRef}>
           <button 
-            onClick={() => setShowNotifications(!showNotifications)}
+            onClick={() => setShowNotifications(prev => !prev)}
             className="p-1.5 rounded-lg bg-cyber-cardLight/40 hover:bg-cyber-cardLight/80 text-gray-300 transition-colors border border-cyber-border/60 relative"
           >
             <Bell className="h-4 w-4" />
@@ -196,32 +207,106 @@ const Header: React.FC = () => {
             )}
           </button>
 
-          {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-cyber-card border border-cyber-border rounded-xl shadow-2xl overflow-hidden z-50 text-sm">
-              <div className="px-4 py-2.5 bg-cyber-cardLight/80 border-b border-cyber-border/80 flex justify-between items-center">
-                <span className="font-semibold text-gray-200">Threat Alerts</span>
-                <span className="text-[10px] font-mono text-cyber-red font-bold animate-pulse-cyan">{activeIncidentsCount} Critical</span>
-              </div>
-              <div className="max-h-64 overflow-y-auto divide-y divide-cyber-border/40">
-                {criticalAlarms.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500 text-xs">No active account takeover threats.</div>
-                ) : (
-                  criticalAlarms.map(n => (
-                    <div key={n.id} className="p-3 hover:bg-cyber-cardLight/30 transition-colors bg-cyber-red/5">
-                      <div className="flex gap-2 items-start">
-                        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-cyber-red" />
-                        <div>
-                          <p className="text-xs font-semibold text-gray-200">{n.threat_type} Triggered</p>
-                          <p className="text-[10px] text-gray-400 mt-0.5">Risk Score: {n.risk_score} | Protected: ₹{n.money_protected}</p>
-                          <span className="text-[9px] text-gray-500 font-mono mt-1 block">{new Date(n.created_at).toLocaleTimeString()}</span>
+          <AnimatePresence>
+            {showNotifications && (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                transition={{ duration: 0.15 }}
+                className="absolute right-0 mt-2 w-96 bg-cyber-card border border-cyber-border rounded-xl shadow-2xl overflow-hidden z-50"
+              >
+                {/* Header bar */}
+                <div className="px-4 py-2.5 bg-cyber-cardLight/80 border-b border-cyber-border/80 flex justify-between items-center">
+                  <span className="font-semibold text-gray-200 text-sm">Threat Alerts</span>
+                  <div className="flex items-center gap-3">
+                    {activeIncidentsCount > 0 && (
+                      <span className="text-[10px] font-mono text-cyber-red font-bold animate-pulse">
+                        {activeIncidentsCount} Critical
+                      </span>
+                    )}
+                    <button onClick={() => setShowNotifications(false)} className="text-gray-500 hover:text-gray-300">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Notification List */}
+                <div className="max-h-80 overflow-y-auto divide-y divide-cyber-border/40">
+                  {criticalAlarms.length === 0 ? (
+                    <div className="p-6 flex flex-col items-center gap-2 text-center">
+                      <CheckCircle className="h-8 w-8 text-cyber-green" />
+                      <p className="text-xs text-gray-400">All threats resolved. System secure.</p>
+                    </div>
+                  ) : (
+                    criticalAlarms.map(n => (
+                      <div
+                        key={n.id}
+                        onClick={() => handleNotifClick(n.id)}
+                        className="p-3 hover:bg-cyber-cardLight/40 transition-colors cursor-pointer group bg-cyber-red/5"
+                      >
+                        <div className="flex gap-3 items-start">
+                          {/* Icon */}
+                          <div className="h-8 w-8 rounded-full bg-red-950/60 border border-cyber-red/50 flex items-center justify-center shrink-0 mt-0.5">
+                            <AlertTriangle className="h-4 w-4 text-cyber-red" />
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-bold text-gray-100 truncate">{n.threat_type} Detected</p>
+                              <ArrowRight className="h-3.5 w-3.5 text-gray-600 group-hover:text-cyber-accent transition-colors shrink-0" />
+                            </div>
+                            <p className="text-[10px] text-gray-400 mt-0.5">
+                              Customer: <span className="text-gray-300">{n.customer?.name || `ID #${n.customer_id}`}</span>
+                            </p>
+                            <div className="flex items-center gap-3 mt-1.5">
+                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-red-950/50 text-cyber-red border border-red-900/50">
+                                Risk {n.risk_score}%
+                              </span>
+                              <span className="text-[9px] font-mono text-cyber-green">
+                                ₹{n.money_protected.toLocaleString()} protected
+                              </span>
+                              <span className="text-[9px] text-gray-600 font-mono ml-auto">
+                                {new Date(n.created_at).toLocaleTimeString()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Resolve button */}
+                        <div className="mt-2.5 flex justify-end">
+                          <button
+                            onClick={(e) => handleResolve(e, n.id)}
+                            disabled={resolvingId === n.id}
+                            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-mono font-semibold bg-green-950/30 border border-green-900/50 text-cyber-green hover:bg-green-950/60 transition-colors disabled:opacity-50"
+                          >
+                            {resolvingId === n.id ? (
+                              <div className="h-2.5 w-2.5 border border-cyber-green border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <ShieldOff className="h-3 w-3" />
+                            )}
+                            {resolvingId === n.id ? 'Resolving…' : 'Resolve Threat'}
+                          </button>
                         </div>
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
+                    ))
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="px-4 py-2 bg-cyber-cardLight/40 border-t border-cyber-border/60 flex justify-between items-center">
+                  <span className="text-[9px] font-mono text-gray-600">Click alert to open AI forensics</span>
+                  <button
+                    onClick={() => { setShowNotifications(false); navigate('/analysis'); }}
+                    className="text-[10px] font-mono text-cyber-accent hover:underline"
+                  >
+                    View All →
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* User Card */}

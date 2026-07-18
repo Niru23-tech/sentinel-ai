@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useSentinel, Incident } from '../context/SentinelContext';
 import { 
   Cpu, 
   AlertTriangle, 
   CheckCircle, 
-  HelpCircle, 
-  ShieldAlert, 
-  Server, 
   Zap, 
-  TrendingUp,
-  BrainCircuit
+  BrainCircuit,
+  ShieldOff,
+  ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -25,101 +24,176 @@ interface AIAnalysisData {
 }
 
 const AIAnalysis: React.FC = () => {
-  const { incidents, loading } = useSentinel();
-  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
-  const [analysis, setAnalysis] = useState<AIAnalysisData | null>(null);
-  const [fetchingAnalysis, setFetchingAnalysis] = useState(false);
+  const { incidents, updateIncidentStatus, fetchData } = useSentinel();
+  const [searchParams] = useSearchParams();
 
-  // Set first incident as selected initially
+  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+  const [analysis,         setAnalysis]         = useState<AIAnalysisData | null>(null);
+  const [fetchingAnalysis, setFetchingAnalysis] = useState(false);
+  const [resolving,        setResolving]        = useState(false);
+  const [justResolved,     setJustResolved]     = useState(false);
+
+  // On load: honour ?incident= URL param (from notification click)
   useEffect(() => {
-    if (incidents.length > 0 && !selectedIncident) {
-      setSelectedIncident(incidents[0]);
+    if (incidents.length === 0) return;
+
+    const paramId = searchParams.get('incident');
+    if (paramId) {
+      const found = incidents.find(i => i.id === parseInt(paramId));
+      if (found) { setSelectedIncident(found); return; }
     }
-  }, [incidents, selectedIncident]);
+    // Default: first incident
+    if (!selectedIncident) setSelectedIncident(incidents[0]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incidents]);
 
   // Fetch AI analysis when selected incident changes
   useEffect(() => {
-    if (selectedIncident) {
-      setFetchingAnalysis(true);
-      setAnalysis(null);
-      fetch(`/api/incidents/${selectedIncident.id}/ai-investigation`)
-        .then(res => res.json())
-        .then(data => {
-          setAnalysis(data);
-          setFetchingAnalysis(false);
-        })
-        .catch(err => {
-          console.error("Error fetching AI analysis:", err);
-          setFetchingAnalysis(false);
-        });
+    if (!selectedIncident) return;
+    setFetchingAnalysis(true);
+    setAnalysis(null);
+    setJustResolved(false);
+
+    fetch(`/api/incidents/${selectedIncident.id}/ai-investigation`)
+      .then(res => res.json())
+      .then(data => { setAnalysis(data); setFetchingAnalysis(false); })
+      .catch(() => setFetchingAnalysis(false));
+  }, [selectedIncident?.id]);
+
+  // Resolve incident from the detail panel
+  const handleResolve = async () => {
+    if (!selectedIncident) return;
+    setResolving(true);
+    try {
+      await updateIncidentStatus(selectedIncident.id, 'Resolved');
+      await fetchData();
+      setJustResolved(true);
+      // Update the local incident object immediately so the badge changes
+      setSelectedIncident(prev => prev ? { ...prev, status: 'Resolved' } : prev);
+    } finally {
+      setResolving(false);
     }
-  }, [selectedIncident]);
+  };
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Incident Cases Index (Left Column) */}
-        <div className="cyber-card lg:col-span-1 flex flex-col justify-between">
-          <div>
-            <h4 className="text-xs font-mono text-gray-400 uppercase tracking-wider mb-4">Threat Incidents Registry</h4>
-            <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
-              {incidents.length === 0 ? (
-                <div className="text-center py-10 text-xs text-gray-500 font-mono">
-                  [NO RECENT INCIDENTS GENERATED]
-                </div>
-              ) : (
-                incidents.map((inc) => (
-                  <button
-                    key={inc.id}
-                    onClick={() => setSelectedIncident(inc)}
-                    className={`w-full text-left p-3.5 rounded-xl border transition-all duration-200 flex flex-col gap-2 ${
-                      selectedIncident?.id === inc.id
-                        ? 'bg-cyber-blue/10 border-cyber-accent/60 shadow-glow-cyan'
-                        : 'bg-cyber-cardLight/30 border-cyber-border/70 hover:border-cyber-border text-gray-400 hover:text-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded ${
-                        inc.status === 'Resolved' ? 'bg-green-950/40 text-cyber-green border border-green-900/60' : 'bg-red-950/40 text-cyber-red border border-red-900/60'
-                      }`}>
-                        {inc.status.toUpperCase()}
-                      </span>
-                      <span className="text-[10px] text-gray-500 font-mono">ID: #{inc.id}</span>
-                    </div>
+        {/* ── Incident Cases Index ──────────────────────────── */}
+        <div className="cyber-card lg:col-span-1 flex flex-col">
+          <h4 className="text-xs font-mono text-gray-400 uppercase tracking-wider mb-4">Threat Incidents Registry</h4>
+          <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 flex-1">
+            {incidents.length === 0 ? (
+              <div className="text-center py-10 text-xs text-gray-500 font-mono">
+                [NO RECENT INCIDENTS GENERATED]
+              </div>
+            ) : (
+              incidents.map((inc) => (
+                <button
+                  key={inc.id}
+                  onClick={() => setSelectedIncident(inc)}
+                  className={`w-full text-left p-3.5 rounded-xl border transition-all duration-200 flex flex-col gap-2 ${
+                    selectedIncident?.id === inc.id
+                      ? 'bg-cyber-blue/10 border-cyber-accent/60 shadow-glow-cyan'
+                      : 'bg-cyber-cardLight/30 border-cyber-border/70 hover:border-cyber-border text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded ${
+                      inc.status === 'Resolved'
+                        ? 'bg-green-950/40 text-cyber-green border border-green-900/60'
+                        : 'bg-red-950/40 text-cyber-red border border-red-900/60'
+                    }`}>
+                      {inc.status.toUpperCase()}
+                    </span>
+                    <span className="text-[10px] text-gray-500 font-mono">ID: #{inc.id}</span>
+                  </div>
 
-                    <h5 className="text-xs font-bold text-gray-200">{inc.threat_type}</h5>
-                    <p className="text-[11px] text-gray-400 truncate">Customer: {inc.customer?.name || `Customer ID #${inc.customer_id}`}</p>
-                    
-                    <div className="flex justify-between items-center text-[10px] font-mono border-t border-cyber-border/30 pt-2 mt-1">
-                      <span className="text-gray-500">Risk: <span className="text-cyber-accent font-bold">{inc.risk_score}%</span></span>
-                      <span className="text-gray-500">Confidence: <span className="text-purple-400 font-bold">{inc.confidence_score}%</span></span>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
+                  <h5 className="text-xs font-bold text-gray-200">{inc.threat_type}</h5>
+                  <p className="text-[11px] text-gray-400 truncate">
+                    {inc.customer?.name || `Customer #${inc.customer_id}`}
+                  </p>
+                  
+                  <div className="flex justify-between items-center text-[10px] font-mono border-t border-cyber-border/30 pt-2 mt-1">
+                    <span className="text-gray-500">
+                      Risk: <span className="text-cyber-accent font-bold">{inc.risk_score}%</span>
+                    </span>
+                    <span className="text-gray-500">
+                      Conf: <span className="text-purple-400 font-bold">{inc.confidence_score}%</span>
+                    </span>
+                  </div>
+                </button>
+              ))
+            )}
           </div>
         </div>
 
-        {/* Cognitive AI Core Review (Right Column) */}
+        {/* ── Cognitive AI Core Review ──────────────────────── */}
         <div className="cyber-card lg:col-span-2">
+          {/* Panel header */}
           <div className="flex items-center justify-between border-b border-cyber-border/60 pb-3 mb-6">
             <div className="flex items-center gap-2">
               <BrainCircuit className="h-5 w-5 text-cyber-accent animate-pulse" />
               <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider">AI Cognitive Threat Forensics</h3>
             </div>
             {selectedIncident && (
-              <span className="text-[10px] font-mono text-gray-500">CASE FILE: #{selectedIncident.id}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-mono text-gray-500">CASE FILE: #{selectedIncident.id}</span>
+
+                {/* Resolve / Resolved button */}
+                {selectedIncident.status !== 'Resolved' ? (
+                  <button
+                    onClick={handleResolve}
+                    disabled={resolving}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-mono font-semibold bg-green-950/30 border border-green-900/50 text-cyber-green hover:bg-green-950/60 transition-colors disabled:opacity-60"
+                  >
+                    {resolving ? (
+                      <div className="h-2.5 w-2.5 border border-cyber-green border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <ShieldOff className="h-3.5 w-3.5" />
+                    )}
+                    {resolving ? 'Resolving…' : 'Resolve Threat'}
+                  </button>
+                ) : (
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-mono font-semibold bg-green-950/20 border border-green-900/40 text-cyber-green">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Resolved
+                  </span>
+                )}
+              </div>
             )}
           </div>
 
+          {/* "Just Resolved" banner */}
+          <AnimatePresence>
+            {justResolved && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="mb-4 p-3 bg-green-950/30 border border-cyber-green/40 rounded-xl flex items-center gap-3"
+              >
+                <CheckCircle className="h-5 w-5 text-cyber-green shrink-0" />
+                <div>
+                  <p className="text-xs font-bold text-cyber-green font-mono">Incident Resolved Successfully</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    Threat has been neutralised. Customer account restrictions will be lifted on next sync.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <AnimatePresence mode="wait">
             {fetchingAnalysis ? (
-              <div className="h-80 flex flex-col items-center justify-center gap-3 font-mono text-xs text-cyber-accent">
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="h-80 flex flex-col items-center justify-center gap-3 font-mono text-xs text-cyber-accent"
+              >
                 <Cpu className="h-8 w-8 animate-spin" />
-                <span>AI CORRELATION MATRIX COMPILING...</span>
-              </div>
+                <span>AI CORRELATION MATRIX COMPILING…</span>
+              </motion.div>
             ) : !selectedIncident ? (
               <div className="h-80 flex items-center justify-center font-mono text-xs text-gray-500">
                 [AWAITING ANOMALOUS INCIDENT LOG FOR FORENSICS]
@@ -132,12 +206,14 @@ const AIAnalysis: React.FC = () => {
                 exit={{ opacity: 0, y: -10 }}
                 className="space-y-6"
               >
-                {/* Executive Verdict Reasoning Card */}
+                {/* Executive Verdict Card */}
                 <div className="p-5 bg-gradient-to-br from-cyber-blue/10 to-purple-950/15 border border-cyber-accent/30 rounded-xl relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-3 opacity-15">
                     <Cpu className="h-20 w-20 text-cyber-accent" />
                   </div>
-                  <h4 className="text-[10px] font-mono font-bold text-cyber-accent uppercase tracking-wider mb-2">Cognitive Reasoning Summary</h4>
+                  <h4 className="text-[10px] font-mono font-bold text-cyber-accent uppercase tracking-wider mb-2">
+                    Cognitive Reasoning Summary
+                  </h4>
                   <p className="text-sm font-bold text-gray-100 leading-relaxed font-sans">
                     "{analysis.description}"
                   </p>
@@ -152,7 +228,12 @@ const AIAnalysis: React.FC = () => {
                       <span className="text-xs text-gray-400">Security Index</span>
                     </div>
                     <div className="w-full bg-cyber-bg h-1.5 rounded-full mt-2 overflow-hidden">
-                      <div className="bg-cyber-red h-full rounded-full" style={{ width: `${analysis.risk_score}%` }}></div>
+                      <motion.div
+                        className="bg-cyber-red h-full rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${analysis.risk_score}%` }}
+                        transition={{ duration: 0.8, ease: 'easeOut' }}
+                      />
                     </div>
                   </div>
 
@@ -163,18 +244,22 @@ const AIAnalysis: React.FC = () => {
                       <span className="text-xs text-gray-400">Correlation Confidence</span>
                     </div>
                     <div className="w-full bg-cyber-bg h-1.5 rounded-full mt-2 overflow-hidden">
-                      <div className="bg-purple-500 h-full rounded-full" style={{ width: `${analysis.confidence_score}%` }}></div>
+                      <motion.div
+                        className="bg-purple-500 h-full rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${analysis.confidence_score}%` }}
+                        transition={{ duration: 0.8, ease: 'easeOut', delay: 0.1 }}
+                      />
                     </div>
                   </div>
                 </div>
 
-                {/* Root Cause & Affected Assets */}
+                {/* Root Cause & Assets */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 bg-cyber-bg/50 border border-cyber-border/80 rounded-xl">
                     <span className="text-[10px] font-mono text-gray-500 uppercase font-semibold">Root Cause Identification</span>
                     <p className="text-xs text-gray-300 mt-2 leading-relaxed">{analysis.root_cause}</p>
                   </div>
-
                   <div className="p-4 bg-cyber-bg/50 border border-cyber-border/80 rounded-xl">
                     <span className="text-[10px] font-mono text-gray-500 uppercase font-semibold">Affected Channels & Assets</span>
                     <p className="text-xs text-gray-300 mt-2 leading-relaxed">{analysis.affected_assets}</p>
@@ -183,7 +268,9 @@ const AIAnalysis: React.FC = () => {
 
                 {/* Mitigations */}
                 <div className="p-4 bg-cyber-cardLight/30 border border-cyber-border/80 rounded-xl">
-                  <span className="text-[10px] font-mono text-gray-500 uppercase font-semibold block mb-3">Analyst Recommended Mitigations</span>
+                  <span className="text-[10px] font-mono text-gray-500 uppercase font-semibold block mb-3">
+                    Analyst Recommended Mitigations
+                  </span>
                   <div className="text-xs text-gray-300 whitespace-pre-line leading-relaxed font-mono">
                     {analysis.recommendations}
                   </div>
@@ -194,17 +281,13 @@ const AIAnalysis: React.FC = () => {
                   <Zap className="h-5 w-5 text-cyber-amber mt-0.5 shrink-0" />
                   <div>
                     <h5 className="text-xs font-bold text-cyber-amber font-mono uppercase">AI Threat Prediction (Next Move)</h5>
-                    <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                      {analysis.next_step}
-                    </p>
+                    <p className="text-xs text-gray-400 mt-1 leading-relaxed">{analysis.next_step}</p>
                   </div>
                 </div>
-
               </motion.div>
             ) : null}
           </AnimatePresence>
         </div>
-
       </div>
     </div>
   );
