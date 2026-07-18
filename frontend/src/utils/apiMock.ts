@@ -682,21 +682,17 @@ const handleMockRequest = (urlStr: string, options: any = {}) => {
 };
 
 // Override window.fetch globally
+// In production (Vercel/Netlify), we always serve mock data for /api/* directly.
+// No real server attempt is made — this guarantees standalone mode works everywhere.
 const originalFetch = window.fetch;
-window.fetch = async (url, options) => {
+window.fetch = async (url: RequestInfo | URL, options?: RequestInit) => {
   const urlStr = url.toString();
+
   if (urlStr.startsWith('/api') || urlStr.includes('/api/')) {
-    try {
-      const response = await originalFetch(url, options);
-      if (response.status === 502 || response.status === 504 || response.status === 503 || response.status === 404) {
-        throw new Error("Backend offline");
-      }
-      return response;
-    } catch (err) {
-      // Fallback
-      console.log(`[SentinelAI Mock Engine] Offline Fallback triggered for: ${urlStr}`);
-      return handleMockRequest(urlStr, options);
-    }
+    console.log(`[SentinelAI Mock Engine] Intercepting: ${urlStr}`);
+    return handleMockRequest(urlStr, options);
   }
+
   return originalFetch(url, options);
 };
+
