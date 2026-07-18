@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
   Bell, 
   User as UserIcon, 
   AlertTriangle, 
   ShieldCheck, 
-  Cpu, 
-  ChevronDown, 
+  Search,
+  X,
   DollarSign 
 } from 'lucide-react';
 import { useSentinel } from '../context/SentinelContext';
@@ -21,8 +21,37 @@ const Header: React.FC = () => {
     moneySaved, 
     activeIncidentsCount 
   } = useSentinel();
+
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [showSearch, setShowSearch]               = useState(false);
+  const [searchQuery, setSearchQuery]             = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchPanelRef = useRef<HTMLDivElement>(null);
+
+  // Focus input when panel opens
+  useEffect(() => {
+    if (showSearch) {
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    } else {
+      setSearchQuery('');
+    }
+  }, [showSearch]);
+
+  // Close panel on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchPanelRef.current && !searchPanelRef.current.contains(e.target as Node)) {
+        setShowSearch(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filteredCustomers = customers.filter(c =>
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.account_number.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   // Map path to title
   const getPageTitle = () => {
@@ -53,47 +82,88 @@ const Header: React.FC = () => {
 
       {/* Action Indicators */}
       <div className="flex items-center gap-6">
-        {/* Customer Selector Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => setShowCustomerDropdown(!showCustomerDropdown)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyber-cardLight/50 border border-cyber-border/80 text-xs text-gray-300 hover:bg-cyber-cardLight/80 transition-colors"
-          >
-            <span className="text-gray-500 font-mono">Target Client:</span>
-            <span className="text-cyber-accent font-semibold">{activeCustomer?.name || 'Select Client'}</span>
-            <ChevronDown className="h-3 w-3 text-gray-400" />
-          </button>
 
-          {showCustomerDropdown && (
-            <div className="absolute right-0 mt-2 w-56 bg-cyber-card border border-cyber-border rounded-xl shadow-2xl overflow-hidden z-50 text-sm">
-              <div className="px-3 py-2 bg-cyber-cardLight/80 border-b border-cyber-border/80 text-[10px] font-mono text-gray-500 uppercase">
-                Select Client Account
-              </div>
-              <div className="max-h-64 overflow-y-auto divide-y divide-cyber-border/40">
-                {customers.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => {
-                      selectCustomer(c.id);
-                      setShowCustomerDropdown(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 hover:bg-cyber-blue/15 hover:text-cyber-accent transition-colors flex items-center justify-between ${
-                      activeCustomer?.id === c.id ? 'bg-cyber-blue/10 text-cyber-accent font-semibold' : 'text-gray-300'
-                    }`}
-                  >
-                    <div>
-                      <p className="text-xs">{c.name}</p>
-                      <p className="text-[9px] font-mono text-gray-500">{c.account_number}</p>
-                    </div>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
-                      c.risk_score >= 80 ? 'bg-red-950/50 text-cyber-red border border-red-900/60' :
-                      c.risk_score >= 50 ? 'bg-amber-950/50 text-cyber-amber border border-amber-900/60' :
-                      'bg-green-950/50 text-cyber-green border border-green-900/60'
-                    }`}>
-                      {c.risk_score}%
-                    </span>
+        {/* ── Client Search ─────────────────────────────────────── */}
+        <div className="relative" ref={searchPanelRef}>
+          {/* Trigger row: active client name + search icon button */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyber-cardLight/50 border border-cyber-border/80 text-xs text-gray-300">
+            <span className="text-gray-500 font-mono">Target Client:</span>
+            <span className="text-cyber-accent font-semibold max-w-[110px] truncate">
+              {activeCustomer?.name || 'Select Client'}
+            </span>
+            <button
+              id="client-search-btn"
+              onClick={() => setShowSearch(prev => !prev)}
+              className="ml-1 p-1 rounded hover:bg-cyber-blue/20 text-gray-400 hover:text-cyber-accent transition-colors"
+              title="Search client"
+            >
+              {showSearch ? <X className="h-3.5 w-3.5" /> : <Search className="h-3.5 w-3.5" />}
+            </button>
+          </div>
+
+          {/* Search Panel */}
+          {showSearch && (
+            <div className="absolute right-0 mt-2 w-64 bg-cyber-card border border-cyber-border rounded-xl shadow-2xl overflow-hidden z-50">
+              {/* Search Input */}
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-cyber-cardLight/80 border-b border-cyber-border/80">
+                <Search className="h-3.5 w-3.5 text-cyber-accent shrink-0" />
+                <input
+                  ref={searchInputRef}
+                  id="client-search-input"
+                  type="text"
+                  placeholder="Search client name or account…"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="flex-1 bg-transparent text-xs text-gray-200 placeholder-gray-600 outline-none font-mono"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="text-gray-500 hover:text-gray-300">
+                    <X className="h-3 w-3" />
                   </button>
-                ))}
+                )}
+              </div>
+
+              {/* Results */}
+              <div className="max-h-64 overflow-y-auto divide-y divide-cyber-border/40">
+                {filteredCustomers.length === 0 ? (
+                  <div className="px-4 py-6 text-center text-[11px] text-gray-500 font-mono">
+                    No clients match "{searchQuery}"
+                  </div>
+                ) : (
+                  filteredCustomers.map(c => (
+                    <button
+                      key={c.id}
+                      onClick={() => {
+                        selectCustomer(c.id);
+                        setShowSearch(false);
+                      }}
+                      className={`w-full text-left px-3 py-2.5 hover:bg-cyber-blue/15 hover:text-cyber-accent transition-colors flex items-center justify-between ${
+                        activeCustomer?.id === c.id
+                          ? 'bg-cyber-blue/10 text-cyber-accent font-semibold'
+                          : 'text-gray-300'
+                      }`}
+                    >
+                      <div>
+                        <p className="text-xs">{c.name}</p>
+                        <p className="text-[9px] font-mono text-gray-500">{c.account_number}</p>
+                      </div>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                        c.risk_score >= 80
+                          ? 'bg-red-950/50 text-cyber-red border border-red-900/60'
+                          : c.risk_score >= 50
+                          ? 'bg-amber-950/50 text-cyber-amber border border-amber-900/60'
+                          : 'bg-green-950/50 text-cyber-green border border-green-900/60'
+                      }`}>
+                        {c.risk_score}%
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+
+              {/* Footer count */}
+              <div className="px-3 py-1.5 bg-cyber-cardLight/40 border-t border-cyber-border/60 text-[9px] font-mono text-gray-600">
+                {filteredCustomers.length} of {customers.length} clients
               </div>
             </div>
           )}
@@ -134,7 +204,7 @@ const Header: React.FC = () => {
               </div>
               <div className="max-h-64 overflow-y-auto divide-y divide-cyber-border/40">
                 {criticalAlarms.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500 text-xs">No active account takover threats.</div>
+                  <div className="p-4 text-center text-gray-500 text-xs">No active account takeover threats.</div>
                 ) : (
                   criticalAlarms.map(n => (
                     <div key={n.id} className="p-3 hover:bg-cyber-cardLight/30 transition-colors bg-cyber-red/5">
