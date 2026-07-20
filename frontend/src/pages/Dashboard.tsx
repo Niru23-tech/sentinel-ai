@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSentinel } from '../context/SentinelContext';
 import { 
   Activity, 
@@ -10,7 +11,8 @@ import {
   ShieldCheck, 
   TrendingUp, 
   AlertTriangle,
-  User
+  User,
+  ArrowRight
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -26,6 +28,7 @@ import {
 import { motion } from 'framer-motion';
 
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { activeCustomer, incidents, recentLogs, moneySaved, activeIncidentsCount } = useSentinel();
 
   if (!activeCustomer) {
@@ -83,27 +86,35 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* 1. Header Metrics Cards */}
+      {/* 1. Header Metrics Cards — all clickable with drill-down navigation */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Customer Account Summary */}
-        <motion.div 
+
+        {/* Monitored Account → Transactions */}
+        <motion.div
           whileHover={{ y: -3, scale: 1.01 }}
-          className="cyber-card border-l-4 border-l-cyber-blue shadow-glow-blue flex items-center justify-between"
+          onClick={() => navigate('/transactions')}
+          className="cyber-card border-l-4 border-l-cyber-blue shadow-glow-blue flex items-center justify-between cursor-pointer group"
+          title="Open Transaction Simulator"
         >
           <div>
             <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider font-mono">Monitored Deposit Account</p>
             <h3 className="text-xl font-bold text-gray-100 mt-1">{activeCustomer.name}</h3>
             <p className="text-[11px] text-gray-400 font-mono mt-1">{activeCustomer.account_number}</p>
+            <p className="text-[9px] text-cyber-accent/60 mt-1 font-mono group-hover:text-cyber-accent transition-colors flex items-center gap-1">
+              <ArrowRight className="h-2.5 w-2.5" /> Open Transactions
+            </p>
           </div>
-          <div className="h-10 w-10 rounded-lg bg-cyber-blue/10 flex items-center justify-center text-cyber-blue border border-cyber-blue/20">
+          <div className="h-10 w-10 rounded-lg bg-cyber-blue/10 flex items-center justify-center text-cyber-blue border border-cyber-blue/20 group-hover:bg-cyber-blue/20 transition-colors">
             <User className="h-5 w-5" />
           </div>
         </motion.div>
 
-        {/* Account Balance */}
-        <motion.div 
+        {/* Account Balance → Transactions */}
+        <motion.div
           whileHover={{ y: -3, scale: 1.01 }}
-          className="cyber-card border-l-4 border-l-cyber-green shadow-glow-cyan flex items-center justify-between"
+          onClick={() => navigate('/transactions')}
+          className="cyber-card border-l-4 border-l-cyber-green shadow-glow-cyan flex items-center justify-between cursor-pointer group"
+          title="Send Money"
         >
           <div>
             <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider font-mono">Available Balance</p>
@@ -111,38 +122,51 @@ const Dashboard: React.FC = () => {
               ₹{activeCustomer.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </h3>
             <p className="text-[10px] text-gray-400 mt-1">Today's Spend: ₹{activeCustomer.today_spending.toLocaleString()}</p>
+            <p className="text-[9px] text-cyber-green/60 mt-1 font-mono group-hover:text-cyber-green transition-colors flex items-center gap-1">
+              <ArrowRight className="h-2.5 w-2.5" /> Send Money
+            </p>
           </div>
-          <div className="h-10 w-10 rounded-lg bg-cyber-green/10 flex items-center justify-center text-cyber-green border border-cyber-green/20">
+          <div className="h-10 w-10 rounded-lg bg-cyber-green/10 flex items-center justify-center text-cyber-green border border-cyber-green/20 group-hover:bg-cyber-green/20 transition-colors">
             <DollarSign className="h-5 w-5" />
           </div>
         </motion.div>
 
-        {/* Threat Incidents Counter */}
-        <motion.div 
+        {/* Active Threats → AI Analysis */}
+        <motion.div
           whileHover={{ y: -3, scale: 1.01 }}
-          className="cyber-card border-l-4 border-l-cyber-red shadow-glow-red flex items-center justify-between"
+          onClick={() => navigate('/analysis')}
+          className="cyber-card border-l-4 border-l-cyber-red shadow-glow-red flex items-center justify-between cursor-pointer group"
+          title="Open AI Analysis"
         >
           <div>
             <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider font-mono">Active Threats Flagged</p>
             <h3 className="text-xl font-bold text-cyber-red mt-1 font-mono">{activeIncidentsCount}</h3>
             <p className="text-[10px] text-gray-400 mt-1">Blocked & Frozen under auto-defense</p>
+            <p className="text-[9px] text-cyber-red/60 mt-1 font-mono group-hover:text-cyber-red transition-colors flex items-center gap-1">
+              <ArrowRight className="h-2.5 w-2.5" /> Investigate Now
+            </p>
           </div>
-          <div className="h-10 w-10 rounded-lg bg-cyber-red/10 flex items-center justify-center text-cyber-red border border-cyber-red/20">
+          <div className="h-10 w-10 rounded-lg bg-cyber-red/10 flex items-center justify-center text-cyber-red border border-cyber-red/20 group-hover:bg-cyber-red/20 transition-colors">
             <ShieldAlert className="h-5 w-5" />
           </div>
         </motion.div>
 
-        {/* Total Money Saved */}
-        <motion.div 
+        {/* Prevented Losses → Incident Reports */}
+        <motion.div
           whileHover={{ y: -3, scale: 1.01 }}
-          className="cyber-card border-l-4 border-l-purple-500 flex items-center justify-between"
+          onClick={() => navigate('/reports')}
+          className="cyber-card border-l-4 border-l-purple-500 flex items-center justify-between cursor-pointer group"
+          title="View Incident Reports"
         >
           <div>
             <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider font-mono">Prevented Losses</p>
             <h3 className="text-xl font-bold text-purple-400 mt-1 font-mono">₹{moneySaved.toLocaleString()}</h3>
             <p className="text-[10px] text-gray-400 mt-1">Protected before transfer exit</p>
+            <p className="text-[9px] text-purple-400/60 mt-1 font-mono group-hover:text-purple-400 transition-colors flex items-center gap-1">
+              <ArrowRight className="h-2.5 w-2.5" /> View Reports
+            </p>
           </div>
-          <div className="h-10 w-10 rounded-lg bg-purple-950/20 flex items-center justify-center text-purple-400 border border-purple-900/40">
+          <div className="h-10 w-10 rounded-lg bg-purple-950/20 flex items-center justify-center text-purple-400 border border-purple-900/40 group-hover:bg-purple-950/40 transition-colors">
             <ShieldCheck className="h-5 w-5" />
           </div>
         </motion.div>
