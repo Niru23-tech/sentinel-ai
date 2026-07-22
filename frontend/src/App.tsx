@@ -17,6 +17,7 @@ import RiskExplainer from './pages/RiskExplainer';
 import DarkWeb from './pages/DarkWeb';
 import Compliance from './pages/Compliance';
 import NetworkTopology from './pages/NetworkTopology';
+import SOCWorkbench from './pages/SOCWorkbench';
 
 import { useSentinel } from './context/SentinelContext';
 import { ShieldAlert, Fingerprint, CheckCircle } from 'lucide-react';
@@ -95,6 +96,7 @@ const App: React.FC = () => {
               <Route path="/dark-web" element={<DarkWeb />} />
               <Route path="/compliance" element={<Compliance />} />
               <Route path="/network" element={<NetworkTopology />} />
+              <Route path="/soc" element={<SOCWorkbench />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>

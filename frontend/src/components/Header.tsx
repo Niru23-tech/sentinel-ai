@@ -78,6 +78,7 @@ const Header: React.FC = () => {
       case '/dark-web':       return 'Dark Web Credential Monitor';
       case '/compliance':     return 'RBI & PCI-DSS Compliance Dashboard';
       case '/network':        return 'Network Topology & Money Mule Detection';
+      case '/soc':            return 'SOC Analyst Command Center';
       default:              return 'SentinelAI Security Platform';
     }
   };
