@@ -65,14 +65,18 @@ const Header: React.FC = () => {
 
   const getPageTitle = () => {
     switch (location.pathname) {
-      case '/':             return 'SentinelAI Operations Terminal';
-      case '/logs':         return 'Live Cyber Security Monitor';
-      case '/transactions': return 'Banking Transaction Simulator';
-      case '/analysis':     return 'AI Correlation & Behavior Analysis';
-      case '/reports':      return 'Incident Report Ledger';
-      case '/settings':     return 'Risk Engine Configuration';
-      case '/threat-map':   return 'Global Threat Intelligence Map';
-      case '/playbooks':    return 'Automated Security Playbooks';
+      case '/':               return 'SentinelAI Operations Terminal';
+      case '/logs':           return 'Live Cyber Security Monitor';
+      case '/transactions':   return 'Banking Transaction Simulator';
+      case '/analysis':       return 'AI Correlation & Behavior Analysis';
+      case '/reports':        return 'Incident Report Ledger';
+      case '/settings':       return 'Risk Engine Configuration';
+      case '/threat-map':     return 'Global Threat Intelligence Map';
+      case '/playbooks':      return 'Automated Security Playbooks';
+      case '/alerts':         return 'Customer Alert & OTP Center';
+      case '/risk-explainer': return 'Explainable AI — Risk Score Breakdown';
+      case '/dark-web':       return 'Dark Web Credential Monitor';
+      case '/compliance':     return 'RBI & PCI-DSS Compliance Dashboard';
       default:              return 'SentinelAI Security Platform';
     }
   };

@@ -12,6 +12,10 @@ import IncidentReport from './pages/IncidentReport';
 import Settings from './pages/Settings';
 import ThreatMap from './pages/ThreatMap';
 import Playbooks from './pages/Playbooks';
+import CustomerAlerts from './pages/CustomerAlerts';
+import RiskExplainer from './pages/RiskExplainer';
+import DarkWeb from './pages/DarkWeb';
+import Compliance from './pages/Compliance';
 
 import { useSentinel } from './context/SentinelContext';
 import { ShieldAlert, Fingerprint, CheckCircle } from 'lucide-react';
@@ -85,6 +89,10 @@ const App: React.FC = () => {
               <Route path="/settings" element={<Settings />} />
               <Route path="/threat-map" element={<ThreatMap />} />
               <Route path="/playbooks" element={<Playbooks />} />
+              <Route path="/alerts" element={<CustomerAlerts />} />
+              <Route path="/risk-explainer" element={<RiskExplainer />} />
+              <Route path="/dark-web" element={<DarkWeb />} />
+              <Route path="/compliance" element={<Compliance />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>

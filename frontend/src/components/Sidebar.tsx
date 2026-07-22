@@ -13,7 +13,11 @@ import {
   X,
   CheckCircle,
   Map,
-  Zap
+  Zap,
+  Bell,
+  BrainCircuit,
+  Eye,
+  ClipboardCheck
 } from 'lucide-react';
 import { useSentinel } from '../context/SentinelContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,14 +31,18 @@ const Sidebar: React.FC = () => {
   const [resetDone,   setResetDone]   = useState(false);
 
   const menuItems = [
-    { name: 'Dashboard',        path: '/',             icon: LayoutDashboard },
-    { name: 'Security Monitor', path: '/logs',         icon: Activity        },
-    { name: 'Transactions',     path: '/transactions', icon: Wallet          },
-    { name: 'AI Analysis',      path: '/analysis',     icon: Cpu             },
-    { name: 'Incident Report',  path: '/reports',      icon: FileText        },
-    { name: 'Threat Map',       path: '/threat-map',   icon: Map             },
-    { name: 'Playbooks',        path: '/playbooks',    icon: Zap             },
-    { name: 'AI Settings',      path: '/settings',     icon: SettingsIcon    },
+    { name: 'Dashboard',         path: '/',               icon: LayoutDashboard },
+    { name: 'Security Monitor',  path: '/logs',           icon: Activity        },
+    { name: 'Transactions',      path: '/transactions',   icon: Wallet          },
+    { name: 'AI Analysis',       path: '/analysis',       icon: Cpu             },
+    { name: 'Incident Report',   path: '/reports',        icon: FileText        },
+    { name: 'Threat Map',        path: '/threat-map',     icon: Map             },
+    { name: 'Playbooks',         path: '/playbooks',      icon: Zap             },
+    { name: 'Customer Alerts',   path: '/alerts',         icon: Bell            },
+    { name: 'Risk Explainer',    path: '/risk-explainer', icon: BrainCircuit    },
+    { name: 'Dark Web Monitor',  path: '/dark-web',       icon: Eye             },
+    { name: 'Compliance',        path: '/compliance',     icon: ClipboardCheck  },
+    { name: 'AI Settings',       path: '/settings',       icon: SettingsIcon    },
   ];
 
   const handleConfirmReset = async () => {
