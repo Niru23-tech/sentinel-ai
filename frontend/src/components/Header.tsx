@@ -71,6 +71,8 @@ const Header: React.FC = () => {
       case '/analysis':     return 'AI Correlation & Behavior Analysis';
       case '/reports':      return 'Incident Report Ledger';
       case '/settings':     return 'Risk Engine Configuration';
+      case '/threat-map':   return 'Global Threat Intelligence Map';
+      case '/playbooks':    return 'Automated Security Playbooks';
       default:              return 'SentinelAI Security Platform';
     }
   };

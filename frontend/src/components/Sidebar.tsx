@@ -11,7 +11,9 @@ import {
   RefreshCw,
   AlertTriangle,
   X,
-  CheckCircle
+  CheckCircle,
+  Map,
+  Zap
 } from 'lucide-react';
 import { useSentinel } from '../context/SentinelContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -30,6 +32,8 @@ const Sidebar: React.FC = () => {
     { name: 'Transactions',     path: '/transactions', icon: Wallet          },
     { name: 'AI Analysis',      path: '/analysis',     icon: Cpu             },
     { name: 'Incident Report',  path: '/reports',      icon: FileText        },
+    { name: 'Threat Map',       path: '/threat-map',   icon: Map             },
+    { name: 'Playbooks',        path: '/playbooks',    icon: Zap             },
     { name: 'AI Settings',      path: '/settings',     icon: SettingsIcon    },
   ];
 

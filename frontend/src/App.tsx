@@ -10,6 +10,8 @@ import Transactions from './pages/Transactions';
 import AIAnalysis from './pages/AIAnalysis';
 import IncidentReport from './pages/IncidentReport';
 import Settings from './pages/Settings';
+import ThreatMap from './pages/ThreatMap';
+import Playbooks from './pages/Playbooks';
 
 import { useSentinel } from './context/SentinelContext';
 import { ShieldAlert, Fingerprint, CheckCircle } from 'lucide-react';
@@ -81,6 +83,8 @@ const App: React.FC = () => {
               <Route path="/analysis" element={<AIAnalysis />} />
               <Route path="/reports" element={<IncidentReport />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/threat-map" element={<ThreatMap />} />
+              <Route path="/playbooks" element={<Playbooks />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
