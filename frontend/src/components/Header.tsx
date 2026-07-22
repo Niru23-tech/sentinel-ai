@@ -77,6 +77,7 @@ const Header: React.FC = () => {
       case '/risk-explainer': return 'Explainable AI — Risk Score Breakdown';
       case '/dark-web':       return 'Dark Web Credential Monitor';
       case '/compliance':     return 'RBI & PCI-DSS Compliance Dashboard';
+      case '/network':        return 'Network Topology & Money Mule Detection';
       default:              return 'SentinelAI Security Platform';
     }
   };

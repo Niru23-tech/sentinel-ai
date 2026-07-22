@@ -17,7 +17,8 @@ import {
   Bell,
   BrainCircuit,
   Eye,
-  ClipboardCheck
+  ClipboardCheck,
+  Network
 } from 'lucide-react';
 import { useSentinel } from '../context/SentinelContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -42,6 +43,7 @@ const Sidebar: React.FC = () => {
     { name: 'Risk Explainer',    path: '/risk-explainer', icon: BrainCircuit    },
     { name: 'Dark Web Monitor',  path: '/dark-web',       icon: Eye             },
     { name: 'Compliance',        path: '/compliance',     icon: ClipboardCheck  },
+    { name: 'Network Topology',  path: '/network',        icon: Network         },
     { name: 'AI Settings',       path: '/settings',       icon: SettingsIcon    },
   ];
 

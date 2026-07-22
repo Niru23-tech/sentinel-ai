@@ -16,6 +16,7 @@ import CustomerAlerts from './pages/CustomerAlerts';
 import RiskExplainer from './pages/RiskExplainer';
 import DarkWeb from './pages/DarkWeb';
 import Compliance from './pages/Compliance';
+import NetworkTopology from './pages/NetworkTopology';
 
 import { useSentinel } from './context/SentinelContext';
 import { ShieldAlert, Fingerprint, CheckCircle } from 'lucide-react';
@@ -93,6 +94,7 @@ const App: React.FC = () => {
               <Route path="/risk-explainer" element={<RiskExplainer />} />
               <Route path="/dark-web" element={<DarkWeb />} />
               <Route path="/compliance" element={<Compliance />} />
+              <Route path="/network" element={<NetworkTopology />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
