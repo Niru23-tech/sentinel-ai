@@ -464,12 +464,391 @@ const handleMockRequest = (urlStr: string, options: any = {}) => {
     return makeResponse(newInc || { id: 999, threat_type: attack_type, risk_score: customer.risk_score, status: "Under Investigation" });
   }
 
+  // --- API 5B: Trigger Single Attack Step (Cyber Range) ---
+  if (cleanUrl === '/api/simulation/step' && method === 'POST') {
+    const payload = JSON.parse(options.body);
+    const { customer_id, event_type, icon, severity, description, risk_added, attack_title } = payload;
+    
+    const customers = JSON.parse(localStorage.getItem('customers') || '[]');
+    const customer = customers.find((c: Customer) => c.id === (customer_id || 1)) || customers[0];
+
+    const logs = JSON.parse(localStorage.getItem('logs') || '[]');
+    const newLog: TelemetryLog = {
+      id: Date.now(),
+      customer_id: customer.id,
+      event_type: event_type || "Cyber Attack Step",
+      icon: icon || "shield-alert",
+      severity: severity || "High",
+      description: description || "Attacker telemetry step injected",
+      risk_added: risk_added || 20,
+      timestamp: new Date().toISOString()
+    };
+    logs.unshift(newLog);
+
+    customer.risk_score = Math.min(100, (customer.risk_score || 0) + (risk_added || 20));
+
+    const settings = JSON.parse(localStorage.getItem('settings') || '{}');
+    const threshold = settings.risk_threshold || 80;
+    const autoProtect = settings.enable_auto_protection !== false;
+
+    let newInc = null;
+    if (customer.risk_score >= threshold) {
+      customer.security_status = "Under Threat";
+      const actions = ["Blocked Outgoing UPI Transaction"];
+      if (autoProtect) {
+        customer.account_status = "Temporarily Frozen";
+        actions.push(`Suspended Customer Account ${customer.account_number}`);
+        actions.push("Terminated Attacker Session");
+        actions.push("Enforced Biometric Terminal Lock");
+      }
+
+      const txMock = { amount: 45000, receiver: "Unknown Attacker Wallet", bank: "Offshore Vault", purpose: "Fraudulent Transfer" };
+      const incidents = JSON.parse(localStorage.getItem('incidents') || '[]');
+      
+      newInc = {
+        id: Date.now(),
+        customer_id: customer.id,
+        threat_type: attack_title || "Multi-Stage APT Attack",
+        risk_score: customer.risk_score,
+        confidence_score: 96,
+        events_correlated_json: JSON.stringify(logs.slice(0, 4).map((l: any) => ({ time: new Date(l.timestamp).toLocaleTimeString(), event: l.event_type, risk: l.risk_added, description: l.description }))),
+        transaction_details_json: JSON.stringify(txMock),
+        actions_taken_json: JSON.stringify(actions),
+        money_protected: 45000,
+        analyst_recommendation: "Biometric override required. Perform session token revocation and customer identity check.",
+        status: autoProtect ? "Blocked" : "Under Investigation",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const existingIndex = incidents.findIndex((i: Incident) => i.customer_id === customer.id && i.status !== "Resolved");
+      if (existingIndex >= 0) {
+        incidents[existingIndex] = { ...incidents[existingIndex], risk_score: customer.risk_score, updated_at: new Date().toISOString() };
+        newInc = incidents[existingIndex];
+      } else {
+        incidents.unshift(newInc);
+      }
+
+      localStorage.setItem('incidents', JSON.stringify(incidents));
+    }
+
+    localStorage.setItem('customers', JSON.stringify(customers));
+    localStorage.setItem('logs', JSON.stringify(logs));
+
+    return makeResponse({
+      log: newLog,
+      customer,
+      incident: newInc,
+      thresholdBreached: customer.risk_score >= threshold
+    });
+  }
+
   // --- API 6: Reset Simulation ---
   if (cleanUrl === '/api/simulation/reset' && method === 'POST') {
     localStorage.removeItem('sentinel_seeded_v3');
     initLocalStorage();
     return makeResponse({ message: "Simulation reset successful" });
   }
+
+  // --- API ML 1: ML Model Info ---
+  if (cleanUrl === '/api/ml/model-info' && method === 'GET') {
+    return makeResponse({
+      is_trained: true,
+      feature_count: 12,
+      feature_list: [
+        "Transaction Amount", "Amount Ratio to 30d Avg", "Amount Z-Score",
+        "Sin Hour (Cyclical Time)", "Cos Hour (Cyclical Time)",
+        "Impossible Travel Velocity (km/h)", "Time Delta Since Last Event (sec)",
+        "Unfamiliar Device Flag", "VPN / Tor Exit Node Flag",
+        "Failed Auth Count (1h)", "Unverified Receiver Flag", "Behavioral Anomaly Index"
+      ],
+      metrics: {
+        accuracy: "98.8%",
+        precision: "97.5%",
+        recall: "96.2%",
+        f1_score: "96.8%",
+        roc_auc: "99.3%",
+        confusion_matrix: { true_negative: 875, false_positive: 5, false_negative: 7, true_positive: 113 },
+        training_samples: 5000
+      },
+      model_metadata: {
+        ensemble_type: "IsolationForest + RandomForest + GradientBoosting",
+        version: "v2.0.0-enterprise-ensemble"
+      }
+    });
+  }
+
+  // --- API ML 2: ML Predict Risk ---
+  if (cleanUrl === '/api/ml/predict' && method === 'POST') {
+    const payload = JSON.parse(options.body || '{}');
+    const amount = Number(payload.amount || 1000);
+    const velocity = Number(payload.velocity_kmh || 0);
+    const device = Boolean(payload.is_unfamiliar_device);
+    const vpn = Boolean(payload.is_vpn_or_tor);
+    const failedAuth = Number(payload.failed_auth_count || 0);
+
+    let risk = 10;
+    if (amount > 50000) risk += 25;
+    if (velocity > 800) risk += 40;
+    if (device) risk += 15;
+    if (vpn) risk += 25;
+    if (failedAuth > 2) risk += 20;
+
+    const finalRisk = Math.min(100, Math.max(0, risk));
+    const riskLevel = finalRisk >= 80 ? "CRITICAL" : finalRisk >= 50 ? "HIGH" : finalRisk >= 25 ? "MEDIUM" : "LOW";
+
+    return makeResponse({
+      ml_risk_score: finalRisk,
+      ml_anomaly_score: Number((finalRisk / 100).toFixed(3)),
+      ml_rf_probability: Number((finalRisk / 100).toFixed(3)),
+      ml_gb_probability: Number((finalRisk / 100).toFixed(3)),
+      risk_level: riskLevel,
+      confidence_pct: Number((86.0 + (finalRisk / 100) * 13.8).toFixed(1)),
+      latency_ms: 1.2,
+      feature_contributions: [
+        { feature: "Impossible Travel Velocity (km/h)", importance_pct: 35.5, value: `${velocity} km/h` },
+        { feature: "VPN / Tor Exit Node Flag", importance_pct: 25.0, value: vpn ? "Active VPN" : "Direct ISP" },
+        { feature: "Transaction Amount", importance_pct: 20.0, value: `₹${amount}` },
+        { feature: "Unfamiliar Device Flag", importance_pct: 19.5, value: device ? "Unknown" : "Trusted" }
+      ],
+      model_metadata: {
+        ensemble_type: "IsolationForest + RandomForest + GradientBoosting",
+        version: "v2.0.0-enterprise-ensemble",
+        accuracy: "98.8%"
+      }
+    });
+  }
+
+  // --- API AGENTS 1: List Agents ---
+  if (cleanUrl === '/api/agents' && method === 'GET') {
+    return makeResponse([
+      { id: 1, agent_name: "Threat Analyst", role: "Cyber Telemetry & Auth Forensics", purpose: "Analyzes auth logs, device fingerprints, IPs, velocity.", detects: ["Brute Force", "Credential Stuffing", "Impossible Travel"] },
+      { id: 2, agent_name: "Fraud Analyst", role: "Transactional Pattern Forensics", purpose: "Analyzes transaction history, transfer amounts, UPI addresses.", detects: ["UPI Fraud", "Money Mule Activity", "Account Takeover"] },
+      { id: 3, agent_name: "Behaviour Analysis Agent", role: "Circadian & Posture Baseline", purpose: "Compares current behavior against 90-day baseline models.", detects: ["Time Shift", "Device Posture Drift", "Location Delta"] },
+      { id: 4, agent_name: "Digital Forensics Agent", role: "Telemetry Correlation & Timeline", purpose: "Correlates auth and transaction logs to construct timeline & IOCs.", detects: ["Attack Path", "IOC Collection", "Compromised Assets"] },
+      { id: 5, agent_name: "Incident Response Agent", role: "Playbook & Bank Authorization Gate", purpose: "Calculates overall risk, generates mitigation checklist requiring bank authorization.", detects: ["Mitigation Checklist", "Bank Approval Gate"] },
+      { id: 6, agent_name: "Executive Report Agent", role: "Executive Dossier & PDF Generator", purpose: "Generates MITRE ATT&CK mappings, business impact, and downloadable reports.", detects: ["MITRE ATT&CK Matrix", "PDF Report"] }
+    ]);
+  }
+
+  // --- API AGENTS 2: Run Multi-Agent Orchestrator ---
+  if (cleanUrl === '/api/agents/run' && method === 'POST') {
+    const payload = JSON.parse(options.body || '{}');
+    const custId = Number(payload.customer_id || 1);
+    const customers = JSON.parse(localStorage.getItem('customers') || '[]');
+    const customer = customers.find((c: any) => c.id === custId) || customers[0] || { id: 1, name: "John Doe", risk_score: 85, account_number: "ACC-124987", current_ip: "185.220.101.5", current_device: "Samsung S23" };
+    const risk = Number(customer.risk_score || 85);
+
+    const now = new Date().toLocaleTimeString();
+
+    const threatOutput = {
+      agent_name: "Threat Analyst",
+      role: "Cyber Telemetry & Authentication Forensics",
+      status: "COMPLETED",
+      execution_time_ms: 18.4,
+      confidence_score: 96.8,
+      risk_contribution_pct: Number((risk * 0.35).toFixed(1)),
+      threat_type: risk >= 80 ? "Impossible Travel & Credential Stuffing APT" : "Unfamiliar Device Login",
+      severity: risk >= 80 ? "CRITICAL" : "HIGH",
+      reason: `High velocity physical travel detected from Chennai to Frankfurt (VPN Exit Node IP ${customer.current_ip}) with 4+ failed auth attempts.`,
+      findings: [
+        `Detected 5 failed login attempts in past 15 minutes across IP ${customer.current_ip}.`,
+        "Connection routed through Tor Exit Node / High-Risk VPN Server.",
+        "Impossible Travel: 6,800 km distance delta in under 8 minutes.",
+        `Unrecognized device fingerprint '${customer.current_device}' attempting session hijack.`
+      ],
+      recommendations: [
+        "Revoke all active OAuth session tokens for user.",
+        "Enforce hardware-key MFA step-up authentication.",
+        "Blacklist IP range on edge Web Application Firewall (WAF).",
+        "Flag account for continuous SOC session monitoring."
+      ]
+    };
+
+    const fraudOutput = {
+      agent_name: "Fraud Analyst",
+      role: "Transactional Pattern & Money Mule Forensics",
+      status: "COMPLETED",
+      execution_time_ms: 22.1,
+      confidence_score: 95.2,
+      risk_contribution_pct: Number((risk * 0.30).toFixed(1)),
+      fraud_probability: risk >= 80 ? 0.945 : 0.65,
+      risk_level: risk >= 80 ? "CRITICAL" : "HIGH",
+      explanation: "High-velocity outbound transfer initiated to an unverified offshore beneficiary shortly after credential update. Classic Money Mule pattern.",
+      findings: [
+        `Attempted transfer of ₹45,000.00 exceeds 30-day average single-transaction limit by 8.4x.`,
+        "Beneficiary UPI address created within past 24 hours (Money Mule indicator).",
+        "Transaction initiated within 3 minutes of unfamiliar IP session login.",
+        `Available liquid balance: ₹${(customer.balance || 100000).toLocaleString()} - High liquidity risk.`
+      ],
+      suggested_response: [
+        "Hold outgoing funds in escrow buffer for 24-hour verification window.",
+        "Cross-reference receiver UPI ID with Cyber Crime Helpline & Mule Registry.",
+        "Require recipient bank verification certificate before clearing settlement.",
+        "Dispatch mandatory biometric confirmation request to customer's mobile app."
+      ]
+    };
+
+    const behaviourOutput = {
+      agent_name: "Behaviour Analysis Agent",
+      role: "Circadian & Device Posture Baseline Correlation",
+      status: "COMPLETED",
+      execution_time_ms: 14.8,
+      confidence_score: 94.0,
+      risk_contribution_pct: Number((risk * 0.20).toFixed(1)),
+      behavior_risk_score: risk,
+      ai_explanation: `Severe behavioral drift detected. Session combines anomalous late-night access (03:14 AM), unverified browser, and non-standard geographic IP delta.`,
+      normal_behavior_breakdown: [
+        "Account registration profile & phone number verified.",
+        "Historical baseline established over 180+ active days."
+      ],
+      abnormal_behavior_breakdown: [
+        "Access Time Deviation: Transaction attempted at 03:14 AM IST (Baseline active hours: 08:00 AM - 10:00 PM).",
+        `Device Fingerprint Drift: Active hardware '${customer.current_device}' does not match primary registered device.`,
+        "Browser Agent Anomaly: Anonymized client with disabled WebGL canvas fingerprints.",
+        "Navigation Flow Anomaly: Direct URL access to transfer endpoints bypassing dashboard overview."
+      ]
+    };
+
+    const forensicsOutput = {
+      agent_name: "Digital Forensics Agent",
+      role: "Telemetry Correlation & Timeline Reconstruction",
+      status: "COMPLETED",
+      execution_time_ms: 24.6,
+      confidence_score: 97.4,
+      risk_contribution_pct: Number((risk * 0.15).toFixed(1)),
+      incident_timeline: [
+        { timestamp: "09:12:05", phase: "Initial Access", event: "Brute Force Auth Burst", detail: `4 failed password attempts logged from IP ${customer.current_ip}.` },
+        { timestamp: "09:14:22", phase: "Privilege Escalation", event: "Session Token Hijack", detail: "Active OAuth session cookie stolen via credential stuffing." },
+        { timestamp: "09:15:40", phase: "Defense Evasion", event: "Proxy & Tor Node Hop", detail: "Connection rerouted through NordVPN Frankfurt Exit Node." },
+        { timestamp: "09:18:10", phase: "Exfiltration / Fraud", event: "Unverified Payee Addition", detail: `Added offshore UPI payee and initiated transfer from ${customer.account_number}.` }
+      ],
+      evidence_collection: [
+        "HTTP User-Agent String: Mozilla/5.0 (Tor/13.0.1) Anonymized Browser Client",
+        `IP Geolocation: Frankfurt, Germany (ASN 60068 - Datacenter Exit Node)`,
+        "Auth Log Hash: 0x8f3b2a9c1e4d7f0a8b9c2d3e4f5a6b7c",
+        "Session Cookie Modification: Token issued for Chennai node presented from Frankfurt"
+      ],
+      indicators_of_compromise: [
+        { type: "IP Address", value: customer.current_ip, threat: "Tor Exit Node / Malicious Proxy" },
+        { type: "Beneficiary UPI", value: "hacker_vault@offshore.bank", threat: "Money Mule Destination Account" },
+        { type: "User-Agent Hash", value: "SHA256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", threat: "Automated Exploit Tooling" }
+      ],
+      attack_path: [
+        "Public Edge Router (IP Ingestion)",
+        "FastAPI Auth Middleware (Brute Force Gate)",
+        "UPI Payment Engine (Fraud Payload)",
+        "Core Settlement Ledger (Blocked at Threshold Gate)"
+      ],
+      affected_services: ["UPI Gateway Service", "OAuth Authentication Provider", "Customer Session Store"],
+      compromised_assets: [`Customer Account #${customer.account_number} (${customer.name})`, "Web Session Token #99281"]
+    };
+
+    const responseOutput = {
+      agent_name: "Incident Response Agent",
+      role: "Playbook Orchestration & Mandatory Authorization Gate",
+      status: "COMPLETED",
+      execution_time_ms: 12.3,
+      confidence_score: 98.9,
+      risk_contribution_pct: Number((risk * 0.10).toFixed(1)),
+      overall_risk_score: risk,
+      severity_tier: risk >= 80 ? "CRITICAL (80-100)" : "MEDIUM (40-80)",
+      response_type: risk >= 80 ? "EMERGENCY RESPONSE PLAN GENERATED" : "ELEVATED DEFENSE PROTOCOL",
+      requires_bank_authorization: true,
+      mitigation_checklist: [
+        { action: "Block Outgoing UPI Transaction", status: "RECOMMENDED", requires_approval: true, description: "Hold settlement of ₹45,000 transfer to hacker_vault@offshore.bank." },
+        { action: "Temporarily Freeze Customer Account", status: "RECOMMENDED", requires_approval: true, description: `Suspend outward debit capabilities on account ${customer.account_number}.` },
+        { action: "Terminate Rogue Browser & Tor Session", status: "RECOMMENDED", requires_approval: false, description: "Revoke OAuth access token 0x99281 immediately." },
+        { action: "Edge Firewall IP Isolation", status: "RECOMMENDED", requires_approval: true, description: `Add IP ${customer.current_ip} to perimeter firewall drop rules.` },
+        { action: "Dispatch Out-of-Band SMS/Email Warning", status: "RECOMMENDED", requires_approval: false, description: "Alert customer on registered phone via automated SMS gateway." },
+        { action: "Generate Printable Executive Dossier PDF", status: "READY", requires_approval: false, description: "Compile full incident report for compliance ledger." }
+      ],
+      summary: "CRITICAL THREAT: Multi-stage Account Takeover detected. Immediate bank analyst authorization recommended to execute containment checklist."
+    };
+
+    const reportOutput = {
+      agent_name: "Executive Report Agent",
+      role: "Executive Dossier & Compliance Report Generation",
+      status: "COMPLETED",
+      execution_time_ms: 24.1,
+      confidence_score: 99.2,
+      risk_contribution_pct: Number((risk * 0.10).toFixed(1)),
+      executive_summary: `SentinelAI Multi-Agent Security Intelligence System intercepted a CRITICAL cyber-fraud attempt targeting account #${customer.account_number} (${customer.name}). By correlating Tor exit node telemetry, impossible travel velocity, and an unverified offshore UPI beneficiary, the platform protected ₹45,000.00.`,
+      overall_risk_score: risk,
+      attack_category: threatOutput.threat_type,
+      mitre_attack_mapping: [
+        { tactic: "Initial Access", technique_id: "T1078.004", technique: "Valid Accounts: Cloud / Web Sessions", status: "DETECTED" },
+        { tactic: "Credential Access", technique_id: "T1110.001", technique: "Brute Force: Password Guessing", status: "DETECTED" },
+        { tactic: "Defense Evasion", technique_id: "T1090.003", technique: "Proxy: Multi-hop Anonymizer / Tor", status: "DETECTED" },
+        { tactic: "Impact", technique_id: "T1657", technique: "Financial Theft & Money Mule Transfer", status: "PREVENTED / BLOCKED" }
+      ],
+      business_impact: {
+        financial_loss_prevented: "INR 45,000.00",
+        regulatory_compliance_risk: "Mitigated (RBI Cyber Security Framework 2024 Compliant)",
+        reputational_damage_score: "LOW (Zero unauthorized funds dispersed)",
+        operational_downtime: "0.0 seconds (Autonomous Edge Mitigation)"
+      },
+      customer_impact: `Account ${customer.account_number} protected. No funds deducted.`,
+      future_prevention: [
+        "Mandate FIDO2 WebAuthn hardware key enrollment for high-value accounts.",
+        "Deploy deep learning IP reputation filtering on perimeter ingress load balancers.",
+        "Integrate beneficiary account creation cooling-off timer (24-hour limit)."
+      ],
+      pdf_report_metadata: {
+        report_id: `REP-SENTINEL-${Math.floor(10000 + Math.random() * 90000)}`,
+        generated_at: new Date().toISOString(),
+        author: "SentinelAI Autonomous Agent Orchestrator",
+        classification: "CONFIDENTIAL // BANKING SOC AUDIT"
+      }
+    };
+
+    return makeResponse({
+      investigation_id: `INV-AGENT-${Math.floor(100000 + Math.random() * 900000)}`,
+      timestamp: new Date().toISOString(),
+      customer_id: customer.id,
+      customer_name: customer.name,
+      final_ai_decision: {
+        overall_risk_percentage: risk,
+        threat_category: threatOutput.threat_type,
+        attack_confidence: 98.6,
+        priority: risk >= 80 ? "P1 - CRITICAL EMERGENCY" : "P2 - HIGH ALERT",
+        recommended_action: "Execute Bank Authorization Containment Checklist & Freeze Account",
+        investigation_status: "INVESTIGATION COMPLETE - ACTION REQUIRED",
+        total_execution_time_ms: 114.2
+      },
+      agents: [
+        threatOutput,
+        fraudOutput,
+        behaviourOutput,
+        forensicsOutput,
+        responseOutput,
+        reportOutput
+      ],
+      executive_report: reportOutput
+    });
+  }
+
+  // --- API AGENTS 3: Status ---
+  if (cleanUrl === '/api/agents/status' && method === 'GET') {
+    return makeResponse({
+      orchestrator_status: "ACTIVE",
+      agent_count: 6,
+      sequential_pipeline: "Threat Analyst -> Fraud Analyst -> Behaviour Analysis -> Digital Forensics -> Incident Response -> Executive Report",
+      execution_engine: "FastAPI Async Multi-Agent Core / Offline Interceptor",
+      average_latency_ms: 114.2
+    });
+  }
+
+  // --- API AGENTS 4: History ---
+  if (cleanUrl === '/api/agents/history' && method === 'GET') {
+    return makeResponse([
+      { id: 1, investigation_id: "INV-AGENT-992182", customer_name: "Rahul Sharma", overall_risk: 95, threat_type: "Impossible Travel & Credential Stuffing APT", status: "ACTION REQUIRED", timestamp: new Date(Date.now() - 15*60*1000).toISOString() },
+      { id: 2, investigation_id: "INV-AGENT-881294", customer_name: "Priya Patel", overall_risk: 88, threat_type: "UPI Money Mule Account Takeover", status: "ACTION REQUIRED", timestamp: new Date(Date.now() - 2*3600*1000).toISOString() },
+      { id: 3, investigation_id: "INV-AGENT-772105", customer_name: "Vikram Malhotra", overall_risk: 25, threat_type: "Baseline Auth Operations", status: "VERIFIED", timestamp: new Date(Date.now() - 6*3600*1000).toISOString() }
+    ]);
+  }
+
+
 
   // --- API 7: Global Logs ---
   if (cleanUrl === '/api/logs' && method === 'GET') {

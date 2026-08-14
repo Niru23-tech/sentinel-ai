@@ -13,7 +13,8 @@ import {
   ShieldCheck,
   CheckCircle,
   XCircle,
-  X
+  X,
+  Palette
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -25,7 +26,7 @@ interface Toast {
 }
 
 const Settings: React.FC = () => {
-  const { settings, updateSettings, triggerAttack, resetSimulation, activeCustomer } = useSentinel();
+  const { settings, updateSettings, triggerAttack, resetSimulation, activeCustomer, currentTheme, changeTheme } = useSentinel();
   
   // Local settings states
   const [threshold, setThreshold]           = useState(80);
@@ -296,6 +297,54 @@ const Settings: React.FC = () => {
             </p>
           </div>
         </div>
+
+        {/* Background Theme Customizer Card */}
+        <div className="cyber-card lg:col-span-2 space-y-4">
+          <div className="flex items-center gap-2 border-b border-cyber-border/60 pb-3 mb-2">
+            <Palette className="h-5 w-5 text-cyber-accent" />
+            <h3 className="text-sm font-mono text-gray-400 uppercase tracking-wider">Background Theme Settings</h3>
+          </div>
+          <p className="text-xs text-gray-400">Select your preferred high-tech dark background theme aesthetics:</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              { id: 'cyber-void', name: 'Midnight Cyber Void', color: '#00f0ff', bg: '#080c14', desc: 'Deep cosmic dark mode with electric cyan & blue radial glows' },
+              { id: 'matrix-emerald', name: 'Matrix Cyberpunk Emerald', color: '#00ff87', bg: '#030f0c', desc: 'Cyberpunk dark jade matrix with glowing neon emerald accents' },
+              { id: 'tactical-crimson', name: 'Tactical Stealth Crimson', color: '#ff2a4b', bg: '#0f0507', desc: 'Tactical SOC high-alert stealth black with ruby red glows' },
+              { id: 'sapphire-glass', name: 'Deep Sapphire Glass', color: '#818cf8', bg: '#090d24', desc: 'Cosmic deep indigo sapphire with royal violet ambient lighting' },
+              { id: 'slate-obsidian', name: 'Slate Obsidian Minimal', color: '#38bdf8', bg: '#0a0e17', desc: 'Clean charcoal slate with ice sky blue minimalism' }
+            ].map(t => (
+              <button
+                key={t.id}
+                onClick={() => {
+                  changeTheme(t.id);
+                  addToast('success', 'Theme Updated', `Background theme switched to ${t.name}.`);
+                }}
+                className={`p-3.5 rounded-xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+                  currentTheme === t.id
+                    ? 'bg-cyber-cardLight border-cyber-accent shadow-glow-cyan'
+                    : 'bg-cyber-cardLight/30 border-cyber-border/70 hover:border-cyber-accent/40'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-4 w-4 rounded-full border border-white/30"
+                      style={{ backgroundColor: t.color, boxShadow: `0 0 10px ${t.color}` }}
+                    />
+                    <span className="text-xs font-bold text-gray-200 font-mono">{t.name}</span>
+                  </div>
+                  {currentTheme === t.id && (
+                    <span className="text-[10px] bg-cyber-accent/20 text-cyber-accent border border-cyber-accent/40 px-2 py-0.5 rounded font-mono font-bold">
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
+                <p className="text-[10px] text-gray-400 leading-snug">{t.desc}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
 
         {/* Attack Simulation Injector */}
         <div className="cyber-card lg:col-span-2 space-y-6">

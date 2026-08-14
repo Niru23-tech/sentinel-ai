@@ -78,9 +78,12 @@ interface SentinelContextType {
   moneySaved: number;
   activeIncidentsCount: number;
   criticalThreatsCount: number;
+  currentTheme: string;
+  changeTheme: (theme: string) => void;
   selectCustomer: (id: number) => void;
   initiateTransaction: (txData: { amount: number; receiver: string; bank: string; upi?: string; purpose?: string }) => Promise<Transaction>;
   triggerAttack: (attackType: string) => Promise<Incident>;
+  triggerAttackStep: (stepData: { customer_id?: number; event_type: string; icon?: string; severity?: string; description?: string; risk_added?: number; attack_title?: string }) => Promise<any>;
   resetSimulation: () => Promise<void>;
   updateSettings: (newSettings: SystemSettings) => Promise<void>;
   updateIncidentStatus: (id: number, status: string) => Promise<void>;
@@ -97,6 +100,19 @@ export const SentinelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentTheme, setCurrentTheme] = useState<string>(() => {
+    return localStorage.getItem('sentinel_theme') || 'cyber-void';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    document.body.setAttribute('data-theme', currentTheme);
+    localStorage.setItem('sentinel_theme', currentTheme);
+  }, [currentTheme]);
+
+  const changeTheme = (theme: string) => {
+    setCurrentTheme(theme);
+  };
 
   const fetchData = async () => {
     try {
@@ -199,6 +215,22 @@ export const SentinelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return incident;
   };
 
+  const triggerAttackStep = async (stepData: { customer_id?: number; event_type: string; icon?: string; severity?: string; description?: string; risk_added?: number; attack_title?: string }) => {
+    const res = await fetch('/api/simulation/step', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(stepData)
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to trigger attack step");
+    }
+
+    const result = await res.json();
+    await fetchData();
+    return result;
+  };
+
   const resetSimulation = async () => {
     const res = await fetch('/api/simulation/reset', { method: 'POST' });
     if (!res.ok) {
@@ -255,9 +287,12 @@ export const SentinelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       moneySaved,
       activeIncidentsCount,
       criticalThreatsCount,
+      currentTheme,
+      changeTheme,
       selectCustomer,
       initiateTransaction,
       triggerAttack,
+      triggerAttackStep,
       resetSimulation,
       updateSettings,
       updateIncidentStatus,

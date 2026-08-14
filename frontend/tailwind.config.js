@@ -8,21 +8,31 @@ export default {
     extend: {
       colors: {
         cyber: {
-          bg: "#080c14",
-          card: "#0f1624",
-          cardLight: "#162035",
-          border: "#1b2a47",
-          accent: "#00f0ff", // Electric cyan
-          blue: "#3b82f6",   // Blue accent
-          amber: "#f59e0b",
-          red: "#ef4444",
-          green: "#10b981"
+          bg: "#07080E",         // Solid Crisp Dark Background
+          bezel: "#12141F",      // Solid Dark Bezel
+          card: "#0E101A",       // High-Contrast Solid Matte Card
+          cardLight: "#161926",  // Clear Solid Card Fill
+          border: "rgba(255, 255, 255, 0.15)", // Sharp Crisp Border
+          borderRed: "#E11D48",
+          accent: "#E11D48",    // Vibrant Bold Red
+          blue: "#E11D48",      
+          red: "#E11D48",       // Crisp Digital Red
+          teal: "#00F2FE",      // Crisp Digital Teal
+          critical: "#E11D48",  
+          warning: "#FFB300",   
+          success: "#00E5FF",   
+          muted: "#94A3B8",     
+          text: "#FFFFFF"       // Pure High-Contrast White Text
         }
       },
       boxShadow: {
-        'glow-cyan': '0 0 15px rgba(0, 240, 255, 0.15)',
-        'glow-red': '0 0 15px rgba(239, 68, 68, 0.2)',
-        'glow-blue': '0 0 15px rgba(59, 130, 246, 0.2)',
+        'none': 'none',
+        'sm': '0 1px 2px 0 rgba(0, 0, 0, 0.5)',
+        'md': '0 4px 6px -1px rgba(0, 0, 0, 0.5)'
+      },
+      borderRadius: {
+        '2xl': '14px',
+        '3xl': '18px'
       }
     },
   },

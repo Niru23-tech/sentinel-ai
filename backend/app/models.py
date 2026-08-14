@@ -88,3 +88,64 @@ class SystemSettings(Base):
     enable_ai = Column(Boolean, default=True)
     enable_auto_protection = Column(Boolean, default=True)
     enable_learning_mode = Column(Boolean, default=True)
+
+class AgentExecution(Base):
+    __tablename__ = "agent_executions"
+    id = Column(Integer, primary_key=True, index=True)
+    investigation_id = Column(String, index=True, nullable=False)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True)
+    agent_name = Column(String, nullable=False)
+    status = Column(String, default="COMPLETED")
+    execution_time_ms = Column(Float, default=0.0)
+    confidence_score = Column(Float, default=95.0)
+    risk_contribution_pct = Column(Float, default=0.0)
+    findings_json = Column(Text, nullable=True)
+    recommendations_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class AgentFindings(Base):
+    __tablename__ = "agent_findings"
+    id = Column(Integer, primary_key=True, index=True)
+    execution_id = Column(Integer, ForeignKey("agent_executions.id"), nullable=False)
+    category = Column(String, nullable=False)
+    severity = Column(String, default="Medium")
+    finding_text = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class IncidentReports(Base):
+    __tablename__ = "incident_reports"
+    id = Column(Integer, primary_key=True, index=True)
+    report_code = Column(String, unique=True, index=True, nullable=False)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
+    executive_summary = Column(Text, nullable=False)
+    overall_risk_score = Column(Integer, default=50)
+    attack_category = Column(String, nullable=False)
+    mitre_mapping_json = Column(Text, nullable=True)
+    business_impact_json = Column(Text, nullable=True)
+    pdf_report_path = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class RiskAnalysis(Base):
+    __tablename__ = "risk_analysis"
+    id = Column(Integer, primary_key=True, index=True)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
+    overall_risk_percentage = Column(Integer, default=50)
+    threat_category = Column(String, nullable=False)
+    attack_confidence = Column(Float, default=95.0)
+    priority = Column(String, default="P1 - CRITICAL")
+    recommended_action = Column(Text, nullable=False)
+    investigation_status = Column(String, default="COMPLETED")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class InvestigationHistory(Base):
+    __tablename__ = "investigation_history"
+    id = Column(Integer, primary_key=True, index=True)
+    investigation_id = Column(String, unique=True, index=True, nullable=False)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
+    analyst_name = Column(String, default="Chief SOC Analyst")
+    overall_risk = Column(Integer, default=50)
+    threat_type = Column(String, nullable=False)
+    status = Column(String, default="COMPLETED")
+    full_payload_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+

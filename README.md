@@ -25,6 +25,50 @@ SentinelAI is a production-quality **Security Operations Center (SOC) prototype*
 DETECT ──► CORRELATE ──► ANALYZE ──► RESPOND ──► REPORT
 ```
 
+### 📊 Full Project Workflow Poster Diagram (Journal & Presentation Quality)
+[![SentinelAI Full Project Workflow Poster](./sentinel_ai_project_workflow_poster.png)](./sentinel_ai_project_workflow_poster.png)
+> 📥 **[Click to Download Full Project Workflow Poster Image (PNG)](./sentinel_ai_project_workflow_poster.png)**
+
+### 📐 Research Journal UI Wireframe Blueprint
+[![SentinelAI Journal Wireframe Blueprint](./sentinel_ai_journal_wireframe.png)](./sentinel_ai_journal_wireframe.png)
+> 📥 **[Click to Download Publication UI Wireframe Image (PNG)](./sentinel_ai_journal_wireframe.png)**
+
+### 🌲 Binary Decision Tree Diagram
+[![SentinelAI Binary Decision Tree](./sentinel_ai_binary_tree_diagram.png)](./sentinel_ai_binary_tree_diagram.png)
+> 📥 **[Click to Download Binary Tree Image (PNG)](./sentinel_ai_binary_tree_diagram.png)**
+
+```mermaid
+graph TD
+    Root[Root: Telemetry Event Ingested] -->|True| L1A{Risk Score >= 80%?}
+    Root -->|False| L1B{Suspicious Location Delta?}
+
+    L1A -->|True| Leaf1[🚫 AUTONOMOUS BLOCK & FREEZE]
+    L1A -->|False| Leaf2[⚠️ FLAG FOR SOC ANALYST REVIEW]
+
+    L1B -->|True| Leaf3[🔐 STEP-UP MFA REQUIRED]
+    L1B -->|False| Leaf4[✅ TRANSACTION APPROVED]
+```
+
+### ⚡ Incident Response Decision Flowchart Diagram
+[![SentinelAI Incident Response Flowchart](./sentinel_ai_incident_response_flowchart.png)](./sentinel_ai_incident_response_flowchart.png)
+> 📥 **[Click to Download Incident Response Flowchart Image (PNG)](./sentinel_ai_incident_response_flowchart.png)**
+
+```mermaid
+graph TD
+    A[📡 Telemetry Ingestion] --> B[🧠 Multi-Vector Risk Scoring]
+    B --> C{Risk Score >= 80%?}
+    C -- YES (High Risk) --> D[🚫 Autonomous Fraud Block]
+    D --> E[🔒 Freeze Account & Lock Session]
+    E --> F[🤖 AI Threat Forensics - Gemini]
+    F --> G[🔑 Biometric SOC Override]
+    G --> H[📋 Export PDF Audit Dossier]
+    C -- NO (Normal) --> I[✅ Allow Transaction & Standard Audit Log]
+```
+
+### 🖼️ System Workflow Architecture Diagram
+[![SentinelAI System Workflow](./sentinel_ai_workflow.png)](./sentinel_ai_workflow.png)
+> 📥 **[Click to Download Architecture Workflow Image (PNG)](./sentinel_ai_workflow.png)**
+
 When a threat is detected (e.g. impossible travel, Tor browser usage, rooted device), SentinelAI autonomously:
 
 - 🚫 **Blocks the outgoing transaction** before funds transfer

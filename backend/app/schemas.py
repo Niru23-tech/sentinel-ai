@@ -17,7 +17,6 @@ class UserResponse(BaseModel):
     name: str
     role: str
     class Config:
-        orm_mode = True
         from_attributes = True
 
 # Customer Schema
@@ -35,7 +34,6 @@ class CustomerSchema(BaseModel):
     account_status: str
     security_status: str
     class Config:
-        orm_mode = True
         from_attributes = True
 
 # Log Schema
@@ -49,7 +47,6 @@ class LogSchema(BaseModel):
     description: Optional[str]
     risk_added: int
     class Config:
-        orm_mode = True
         from_attributes = True
 
 # Transaction Schema
@@ -67,7 +64,6 @@ class TransactionSchema(BaseModel):
     money_saved: float
     timestamp: datetime
     class Config:
-        orm_mode = True
         from_attributes = True
 
 class TransactionCreate(BaseModel):
@@ -95,7 +91,6 @@ class IncidentSchema(BaseModel):
     updated_at: datetime
     customer: Optional[CustomerSchema] = None
     class Config:
-        orm_mode = True
         from_attributes = True
 
 # System Settings Schema
@@ -105,9 +100,32 @@ class SystemSettingsSchema(BaseModel):
     enable_auto_protection: bool
     enable_learning_mode: bool
     class Config:
-        orm_mode = True
         from_attributes = True
 
 # Simulation Request
 class SimulationRequest(BaseModel):
     attack_type: str
+
+# Report Schema
+class ReportSchema(BaseModel):
+    id: int
+    incident_id: int
+    executive_summary: str
+    timeline_json: str
+    ai_analysis_json: str
+    recommendations: str
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+# ML Prediction Schemas
+class MLPredictRequest(BaseModel):
+    amount: float
+    avg_amount: Optional[float] = 3000.0
+    velocity_kmh: Optional[float] = 0.0
+    is_unfamiliar_device: Optional[bool] = False
+    is_vpn_or_tor: Optional[bool] = False
+    failed_auth_count: Optional[int] = 0
+    is_unverified_receiver: Optional[bool] = False
+
+
