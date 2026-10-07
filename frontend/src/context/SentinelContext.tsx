@@ -118,34 +118,40 @@ export const SentinelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       // 1. Fetch Customers
       const custRes = await fetch('/api/customers');
-      const custData = await custRes.json();
-      setCustomers(custData);
-      
-      // Auto-set first customer as active if none set
-      if (custData.length > 0) {
-        setActiveCustomer(prev => {
-          if (prev) {
-            const updated = custData.find((c: Customer) => c.id === prev.id);
-            return updated || custData[0];
-          }
-          return custData[0];
-        });
+      const custData = await custRes.json().catch(() => []);
+      if (Array.isArray(custData)) {
+        setCustomers(custData);
+        if (custData.length > 0) {
+          setActiveCustomer(prev => {
+            if (prev) {
+              const updated = custData.find((c: Customer) => c.id === prev.id);
+              return updated || custData[0];
+            }
+            return custData[0];
+          });
+        }
       }
 
       // 2. Fetch Global Logs
       const logsRes = await fetch('/api/logs');
-      const logsData = await logsRes.json();
-      setLogs(logsData);
+      const logsData = await logsRes.json().catch(() => []);
+      if (Array.isArray(logsData)) {
+        setLogs(logsData);
+      }
 
       // 3. Fetch Incidents
       const incRes = await fetch('/api/incidents');
-      const incData = await incRes.json();
-      setIncidents(incData);
+      const incData = await incRes.json().catch(() => []);
+      if (Array.isArray(incData)) {
+        setIncidents(incData);
+      }
 
       // 4. Fetch System Settings
       const settingsRes = await fetch('/api/settings');
-      const settingsData = await settingsRes.json();
-      setSettings(settingsData);
+      const settingsData = await settingsRes.json().catch(() => null);
+      if (settingsData && typeof settingsData === 'object') {
+        setSettings(settingsData);
+      }
 
       setLoading(false);
     } catch (error) {

@@ -18,11 +18,13 @@ import {
   Globe
 } from 'lucide-react';
 import { useSentinel } from '../context/SentinelContext';
+import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Header: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const { 
     customers, 
     activeCustomer, 
@@ -310,15 +312,32 @@ const Header: React.FC = () => {
           </AnimatePresence>
         </div>
 
-        {/* User Identity Card */}
+        {/* User Identity Card & Sign Out */}
         <div className="flex items-center gap-2 pl-2 border-l border-white/10">
-          <div className="h-8 w-8 rounded-xl bg-cyber-accent/20 border border-cyber-accent/40 flex items-center justify-center text-cyber-accent font-bold">
-            <UserIcon className="h-4 w-4" />
-          </div>
-          <div className="hidden xl:block">
-            <p className="text-xs font-bold text-slate-200">Chief Analyst</p>
-            <p className="text-[8px] text-slate-500">OPERATOR #883</p>
-          </div>
+          <button
+            onClick={() => navigate('/security-activity')}
+            className="flex items-center gap-2 text-left hover:bg-white/5 p-1 rounded-xl transition-colors"
+            title="View Security Activity & Audit Logs"
+          >
+            <div className="h-8 w-8 rounded-xl bg-cyber-accent/20 border border-cyber-accent/40 flex items-center justify-center text-cyber-accent font-bold shrink-0">
+              <UserIcon className="h-4 w-4" />
+            </div>
+            <div className="hidden xl:block">
+              <p className="text-xs font-bold text-slate-200">{user ? user.name : 'Chief Analyst'}</p>
+              <p className="text-[8px] text-cyber-teal font-mono uppercase">{user ? user.employeeId : 'OPERATOR #883'}</p>
+            </div>
+          </button>
+
+          <button
+            onClick={async () => {
+              await logout();
+              navigate('/login');
+            }}
+            className="p-2 rounded-xl bg-white/5 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 border border-white/10 hover:border-rose-500/40 transition-colors ml-1"
+            title="Sign Out of SentinelX"
+          >
+            <ShieldOff className="h-4 w-4 text-cyber-accent" />
+          </button>
         </div>
 
       </div>

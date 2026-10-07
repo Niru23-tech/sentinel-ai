@@ -22,15 +22,19 @@ import {
   Briefcase,
   Target,
   Bot,
+  ShieldCheck,
+  LogOut,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
 import { useSentinel } from '../context/SentinelContext';
+import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const { resetSimulation, activeCustomer } = useSentinel();
+  const { user, logout } = useAuth();
 
   const [collapsed, setCollapsed] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -38,22 +42,19 @@ const Sidebar: React.FC = () => {
   const [resetDone, setResetDone] = useState(false);
 
   const menuItems = [
-    { name: 'SOC Dashboard',       path: '/',               icon: LayoutDashboard },
-    { name: 'AI Security Agents',  path: '/agents',         icon: Bot             },
-    { name: 'Cyber Range',         path: '/cyber-range',    icon: Target          },
-    { name: 'Security Monitor',    path: '/logs',           icon: Activity        },
-    { name: 'Transactions',        path: '/transactions',   icon: Wallet          },
-    { name: 'AI Analysis',         path: '/analysis',       icon: Cpu             },
-    { name: 'Incident Reports',    path: '/reports',        icon: FileText        },
-    { name: 'Threat Map',          path: '/threat-map',     icon: Map             },
-    { name: 'Playbooks',           path: '/playbooks',      icon: Zap             },
-    { name: 'Customer Alerts',     path: '/alerts',         icon: Bell            },
-    { name: 'Risk Explainer',      path: '/risk-explainer', icon: BrainCircuit    },
-    { name: 'Dark Web Monitor',    path: '/dark-web',       icon: Eye             },
-    { name: 'Compliance',          path: '/compliance',     icon: ClipboardCheck  },
-    { name: 'Network Topology',    path: '/network',        icon: Network         },
-    { name: 'SOC Workbench',       path: '/soc',            icon: Briefcase       },
-    { name: 'AI Settings',         path: '/settings',       icon: SettingsIcon    },
+    { name: 'SOC Mission Control',  path: '/',               icon: LayoutDashboard },
+    { name: 'Analyst Workbench',    path: '/soc',            icon: Briefcase       },
+    { name: 'Pre-Auth Audit',       path: '/transactions',   icon: Wallet          },
+    { name: 'Multi-Agent Forensics',path: '/agents',         icon: Bot             },
+    { name: 'Security Telemetry',   path: '/logs',           icon: Activity        },
+    { name: 'AI Threat Forensics',  path: '/analysis',       icon: Cpu             },
+    { name: 'Incident Reports',     path: '/reports',        icon: FileText        },
+    { name: 'Explainable AI (XAI)', path: '/risk-explainer', icon: BrainCircuit    },
+    { name: 'Threat Map',           path: '/threat-map',     icon: Map             },
+    { name: 'Automated Playbooks',  path: '/playbooks',      icon: Zap             },
+    { name: 'RBI & PCI Compliance', path: '/compliance',     icon: ClipboardCheck  },
+    { name: 'Customer Alerts',      path: '/alerts',         icon: Bell            },
+    { name: 'Risk Rules & APIs',    path: '/settings',       icon: SettingsIcon    },
   ];
 
   const handleConfirmReset = async () => {
@@ -146,22 +147,36 @@ const Sidebar: React.FC = () => {
             </div>
           )}
 
+          {/* Sign Out Button */}
+          <button
+            onClick={() => {
+              logout();
+              navigate('/login');
+            }}
+            className={`w-full py-2 px-3 rounded-xl border border-white/10 text-slate-400 hover:text-white hover:border-[#E11D48]/40 hover:bg-[#E11D48]/10 transition-colors flex items-center gap-2.5 text-xs font-mono mb-2 ${
+              collapsed ? 'justify-center' : ''
+            }`}
+            title="Sign Out of SentinelX"
+          >
+            <LogOut className="h-4 w-4 text-[#E11D48] shrink-0" />
+            {!collapsed && <span>Sign Out</span>}
+          </button>
+
+          {/* Reset Simulation Target */}
           <button
             onClick={() => !resetting && setShowConfirm(true)}
             disabled={resetting}
-            className={`w-full flex items-center justify-center py-2 rounded-lg text-xs font-bold border transition-all gap-1.5 cursor-pointer ${
-              resetDone
-                ? 'text-[#00E5FF] border-[#00E5FF]/40 bg-[#00E5FF]/10'
-                : 'text-[#E11D48] hover:bg-[#E11D48]/20 border-[#E11D48]/40 shadow-glow-red'
+            className={`w-full py-2 px-3 rounded-xl border border-white/10 text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-2.5 text-xs font-mono ${
+              collapsed ? 'justify-center' : ''
             }`}
-            title="Reset Simulation Baseline"
+            title="Reset Simulation"
           >
             {resetDone ? (
-              <CheckCircle className="h-3.5 w-3.5" />
+              <CheckCircle className="h-4 w-4 text-[#00E5FF] shrink-0" />
             ) : resetting ? (
-              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              <RefreshCw className="h-4 w-4 text-[#E11D48] animate-spin shrink-0" />
             ) : (
-              <RefreshCw className="h-3.5 w-3.5" />
+              <RefreshCw className="h-4 w-4 text-slate-400 shrink-0" />
             )}
             {!collapsed && <span>{resetDone ? 'Complete' : resetting ? 'Resetting…' : 'Reset Target'}</span>}
           </button>

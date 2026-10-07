@@ -417,6 +417,53 @@ const Settings: React.FC = () => {
 
         </div>
 
+        {/* Enterprise API Gateway Integration Documentation Card */}
+        <div className="cyber-card lg:col-span-2 space-y-4 border-l-4 border-cyber-accent">
+          <div className="flex items-center justify-between border-b border-cyber-border/60 pb-3">
+            <div className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-cyber-accent" />
+              <h3 className="text-sm font-mono text-gray-200 uppercase tracking-wider font-bold">
+                Enterprise Core Banking API & SIEM Integration Gateway
+              </h3>
+            </div>
+            <span className="text-[10px] font-mono text-cyber-accent bg-cyber-accent/10 px-2 py-0.5 rounded border border-cyber-accent/30 font-bold">
+              v1.0 PRODUCTION READY
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+            
+            {/* Core Banking Pre-Auth API */}
+            <div className="p-3 bg-cyber-bg/70 border border-cyber-border rounded-xl space-y-2">
+              <div className="flex items-center justify-between text-cyber-accent font-bold text-[11px]">
+                <span>1. Core Banking Pre-Auth Endpoint</span>
+                <span className="bg-cyber-accent/20 px-2 py-0.5 rounded text-[10px]">POST</span>
+              </div>
+              <code className="block p-2 bg-black/50 rounded text-gray-300 text-[10px] select-all">
+                /api/v1/risk/assess-transaction
+              </code>
+              <p className="text-[10px] text-gray-400 font-sans">
+                Callable by Core Banking Systems (ISO 20022 / Mobile App Gateway) to get sub-10ms risk scores & pre-authorization verdicts (ALLOW / CHALLENGE_MFA / BLOCK).
+              </p>
+            </div>
+
+            {/* SIEM Telemetry Ingestion API */}
+            <div className="p-3 bg-cyber-bg/70 border border-cyber-border rounded-xl space-y-2">
+              <div className="flex items-center justify-between text-cyber-emerald font-bold text-[11px]">
+                <span>2. SIEM Telemetry Webhook</span>
+                <span className="bg-cyber-emerald/20 px-2 py-0.5 rounded text-[10px] text-cyber-emerald">POST</span>
+              </div>
+              <code className="block p-2 bg-black/50 rounded text-gray-300 text-[10px] select-all">
+                /api/v1/telemetry/ingest
+              </code>
+              <p className="text-[10px] text-gray-400 font-sans">
+                Accepts Syslog / CEF format logs directly from Splunk, Elastic, Cloudflare WAF, and IAM gateways to update real-time risk scores.
+              </p>
+            </div>
+
+          </div>
+        </div>
+
       </div>
     </div>
   );
